@@ -63,6 +63,9 @@
   }
 
   [hidden] { display: none !important; }
+  /* en el PC el teclado escribe en este cuadro invisible: así las extensiones (Vimium y otras) y el
+     "buscar mientras escribes" del navegador no se roban las letras */
+  #kbd { position: fixed; left: 0; top: 0; width: 1px; height: 1px; opacity: 0; border: 0; padding: 0; resize: none; pointer-events: none; }
   button { font: inherit; -webkit-appearance: none; appearance: none; }
   button:focus { outline: none; }
   button:focus-visible { outline: 2px solid var(--accent-hi); outline-offset: 1px; }
@@ -285,6 +288,8 @@
   </div>
 </div>
 
+<textarea id="kbd" aria-hidden="true" tabindex="-1" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"></textarea>
+
 <div class="overlay" id="loading">
   <div class="load">
     <h1 aria-label="e a la j pi"><i>e</i><sup><i>j</i>π</sup></h1>
@@ -444,6 +449,7 @@
       ready = true; $("loadBar").style.width = "100%";
       apply(JSON.parse(m.st));
       $("loading").hidden = true;
+      grab();
       return;
     }
     if (m.type === "error") {
@@ -837,9 +843,27 @@
   }
   // ---------------------------------------------------------------- teclado físico (PC o teclado bluetooth)
   const PHYS = { Enter: "enter", Escape: "escape", ArrowLeft: "left", ArrowRight: "right", ArrowUp: "up", ArrowDown: "down", Backspace: "backspace", Delete: "delete", Tab: "tab", Home: "home", End: "end" };
+  // teclado del PC: el foco queda en un cuadro de texto invisible (solo con mouse; en el celular no, para
+  // que no aparezca el teclado del teléfono). Las teclas muertas (^ en teclados en español) llegan por "input".
+  const kbd = $("kbd");
+  const DESK = window.matchMedia && window.matchMedia("(hover: hover) and (pointer: fine)").matches;
+  function grab() {
+    if (!DESK || !$("scrim").hidden || !$("menuScrim").hidden || !$("formScrim").hidden) return;
+    if (document.activeElement !== kbd) { try { kbd.focus({ preventScroll: true }); } catch (e) { kbd.focus(); } }
+  }
+  if (DESK) {
+    document.addEventListener("pointerup", () => setTimeout(grab, 0));
+    window.addEventListener("focus", grab);
+    for (const id of ["scrim", "menuScrim", "formScrim"])
+      new MutationObserver(() => setTimeout(grab, 0)).observe($(id), { attributes: true, attributeFilter: ["hidden"] });
+  }
+  kbd.addEventListener("input", () => {
+    const t = kbd.value; kbd.value = "";
+    for (const ch of t) if (ch !== "\n") send(K("text", { text: ch }));
+  });
   window.addEventListener("keydown", (ev) => {
     if (!$("scrim").hidden || !$("menuScrim").hidden || !$("formScrim").hidden) return;
-    if (ev.target && /^(INPUT|SELECT|TEXTAREA)$/.test(ev.target.tagName)) return;
+    if (ev.target && ev.target !== kbd && /^(INPUT|SELECT|TEXTAREA)$/.test(ev.target.tagName)) return;
     const k = PHYS[ev.key];
     if (k) {
       ev.preventDefault();
