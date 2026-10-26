@@ -1,0 +1,917 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="icons/icon-180.png">
+<link rel="icon" href="icons/icon-192.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="e^jπ">
+<meta name="theme-color" content="#1B1E23">
+<style>:root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0}</style>
+</head>
+<body>
+<title>e^jπ</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<meta name="description" content="e^jπ: calculadora CAS para el celular, con el mismo núcleo que TNS Estudio en el PC.">
+<style>
+  :root {
+    /* cuerpo de la calculadora: grafito, como la TI (igual en claro y oscuro) */
+    --body: #1B1E23;
+    --body-2: #23272D;
+    --key-num: #3B4048;
+    --key-num-hi: #4A505A;
+    --key-fn: #2A2E35;
+    --key-fn-hi: #363B43;
+    --key-op: #4B525D;
+    --key-ink: #F2F3F5;
+    --key-ink-2: #AEB4BF;
+    --accent: #3D7BE8;
+    --accent-hi: #5A90F0;
+    --gold: #D9A441;
+    --del: #A8372F;
+    /* pantalla: papel claro */
+    --screen: #FBFBF8;
+    --screen-2: #F0F1EC;
+    --rule: #E3E5DF;
+    --ink: #23252B;
+    --unit: #0F6E56;
+    --slot: #9AA1B2;
+    --ghost: #A4A9B6;
+    --faint: #C9CED8;
+    --err: #B3261E;
+    --hint: #6B7080;
+    --sel: #D6E4FA;
+    --sel-line: #9DBDF2;
+    --caret: #23252B;
+    color-scheme: light;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --screen: #14171B; --screen-2: #1A1E23; --rule: #2A2F36; --ink: #E7E9EE; --unit: #52C7A4;
+      --slot: #6E7689; --ghost: #5F6675; --faint: #474D58; --err: #FF8A80; --hint: #949BAA;
+      --sel: #213451; --sel-line: #3E66A8; --caret: #E7E9EE; color-scheme: dark;
+    }
+  }
+  :root[data-theme="dark"] {
+    --screen: #14171B; --screen-2: #1A1E23; --rule: #2A2F36; --ink: #E7E9EE; --unit: #52C7A4;
+    --slot: #6E7689; --ghost: #5F6675; --faint: #474D58; --err: #FF8A80; --hint: #949BAA;
+    --sel: #213451; --sel-line: #3E66A8; --caret: #E7E9EE; color-scheme: dark;
+  }
+
+  [hidden] { display: none !important; }
+  button { font: inherit; -webkit-appearance: none; appearance: none; }
+  button:focus { outline: none; }
+  button:focus-visible { outline: 2px solid var(--accent-hi); outline-offset: 1px; }
+  html, body { height: 100%; }
+  body {
+    background: var(--body);
+    color: var(--key-ink);
+    margin: 0;
+    overflow: hidden;
+    overscroll-behavior: none;
+    padding-left: max(16px, env(safe-area-inset-left, 0px));
+    padding-right: max(16px, env(safe-area-inset-right, 0px));
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    -webkit-user-select: none; user-select: none;
+    -webkit-tap-highlight-color: transparent;
+    -webkit-text-size-adjust: 100%;
+  }
+  body::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-area-inset-top, 0px); z-index: 10; background: var(--body); }
+
+  #app {
+    max-width: 460px; margin: 0 auto;
+    height: calc(100dvh - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px));
+    display: flex; flex-direction: column; gap: 8px;
+    padding-block: 6px 4px; box-sizing: border-box;
+  }
+
+  /* ---------- barra de arriba */
+  .top { display: flex; align-items: center; gap: 8px; height: 30px; flex: none; }
+  .brand { font-family: "TNSSerif", Georgia, "Times New Roman", serif; font-size: 22px; line-height: 1; color: var(--key-ink); white-space: nowrap; padding-right: 2px; }
+  .brand sup, .load h1 sup { color: var(--gold); font-size: .6em; margin-left: .04em; vertical-align: .75em; line-height: 0; }
+  .chip {
+    flex: 1; min-width: 0; height: 26px; border: 0; border-radius: 13px; padding: 0 12px;
+    background: var(--body-2); color: var(--key-ink-2); font: 600 11.5px/26px ui-monospace, "SF Mono", Menlo, monospace;
+    letter-spacing: .04em; text-transform: uppercase; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  }
+  .icon-btn { width: 30px; height: 30px; border: 0; border-radius: 15px; background: var(--body-2); color: var(--key-ink); font-size: 17px; line-height: 30px; padding: 0; flex: none; }
+
+  /* ---------- pantalla */
+  .screen {
+    flex: 1; min-height: 120px; display: flex; flex-direction: column; overflow: hidden; position: relative;
+    background: var(--screen); border-radius: 14px;
+    box-shadow: inset 0 0 0 1px rgba(0,0,0,.06), 0 0 0 3px #101215;
+  }
+  .hist { flex: 1; min-height: 0; overflow-y: auto; overflow-x: hidden; -webkit-overflow-scrolling: touch; padding: 4px 0; }
+  .hist-empty { color: var(--hint); font-size: 13px; text-align: center; padding: 28px 18px; line-height: 1.5; }
+  .e { border-bottom: 1px solid var(--rule); padding: 2px 0; }
+  .r { display: block; overflow-x: auto; overflow-y: hidden; scrollbar-width: none; padding: 0 6px; }
+  .r::-webkit-scrollbar { display: none; }
+  .r canvas { display: block; }
+  .r.out canvas { margin-left: auto; }
+  .r.hint canvas { margin-left: auto; }
+  .r.sel { background: var(--sel); box-shadow: inset 3px 0 0 var(--sel-line); }
+
+  .line {
+    flex: none; position: relative; border-top: 1px solid var(--rule); background: var(--screen-2);
+    overflow-x: auto; overflow-y: hidden; scrollbar-width: none; padding: 4px 6px; min-height: 34px; max-height: 40%;
+  }
+  .line::-webkit-scrollbar { display: none; }
+  .line-in { position: relative; width: max-content; min-width: 100%; }
+  .line canvas { display: block; }
+  .caret { position: absolute; width: 2px; background: var(--caret); border-radius: 1px; animation: blink 1.06s steps(1) infinite; pointer-events: none; }
+  .selbox { position: absolute; background: var(--sel); pointer-events: none; }
+  @keyframes blink { 50% { opacity: 0; } }
+
+  .busy {
+    position: absolute; left: 50%; bottom: 52px; transform: translateX(-50%);
+    display: flex; align-items: center; gap: 10px; padding: 6px 6px 6px 14px; border-radius: 18px;
+    background: #23272D; color: #F2F3F5; font-size: 13px; box-shadow: 0 6px 20px rgba(0,0,0,.25); white-space: nowrap;
+  }
+  .busy button { border: 0; border-radius: 13px; height: 26px; padding: 0 12px; background: #B3261E; color: #fff; font-weight: 600; font-size: 12.5px; }
+  .spin { width: 12px; height: 12px; border-radius: 50%; border: 2px solid #5A6270; border-top-color: #F2F3F5; animation: rot .8s linear infinite; }
+  @keyframes rot { to { transform: rotate(360deg); } }
+  .toast { position: absolute; left: 50%; top: 10px; transform: translateX(-50%); background: #23272D; color: #F2F3F5; padding: 6px 14px; border-radius: 14px; font-size: 13px; pointer-events: none; }
+
+  /* ---------- teclado */
+  .pad { flex: none; display: flex; flex-direction: column; gap: 7px; --kh: clamp(36px, 5.6dvh, 48px); }
+  .tools { display: flex; gap: 5px; }
+  .tools button {
+    flex: 1; min-width: 0; height: 36px; border: 0; border-radius: 9px; background: var(--key-fn); color: var(--key-ink);
+    font-size: 15px; padding: 0; touch-action: manipulation; position: relative;
+  }
+  .tools button.del { flex: 1.35; background: var(--del); font-size: 17px; }
+  .tools button.word { font-size: 12px; font-weight: 700; letter-spacing: .04em; color: var(--key-ink-2); }
+  .tools .alt { position: absolute; top: 2px; right: 4px; font-size: 8.5px; font-weight: 700; color: var(--gold); font-family: -apple-system, BlinkMacSystemFont, sans-serif; letter-spacing: .02em; }
+
+  .keys { display: grid; gap: 6px; grid-template-columns: repeat(6, minmax(0, 1fr)); grid-auto-rows: var(--kh); }
+  /* abc: como el teclado del teléfono (teclas bajas y anchas, filas escalonadas) */
+  .keys.abc { grid-template-columns: repeat(20, minmax(0, 1fr)); grid-auto-rows: clamp(38px, 5.2dvh, 44px); gap: 9px 5px; }
+  .k {
+    position: relative; min-width: 0; border: 0; border-radius: 10px; padding: 0; background: var(--key-num); color: var(--key-ink);
+    font-size: 19px; font-family: "TNSSerif", Georgia, "Times New Roman", serif; touch-action: manipulation;
+    box-shadow: 0 1.5px 0 rgba(0,0,0,.45); display: flex; align-items: center; justify-content: center; line-height: 1;
+    white-space: nowrap; overflow: hidden;
+  }
+  .k .alt { position: absolute; top: 3px; right: 5px; font-size: 9.5px; line-height: 1; color: var(--gold); font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; font-weight: 600; }
+  .k .main { display: inline-flex; align-items: center; }
+  .k.fn { background: var(--key-fn); font-size: 15.5px; }
+  .k.op { background: var(--key-op); font-size: 21px; }
+  .k.word { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; font-size: 13px; font-weight: 600; letter-spacing: .01em; }
+  .k.unit { color: #8FE0C4; }
+  .k.go { background: var(--accent); font-size: 22px; }
+  .k.go .alt { color: #FFE2A6; }
+  .k.gold { color: var(--gold); }
+  .k.del { background: var(--del); }
+  .k.sw { background: var(--key-fn); color: var(--key-ink); font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; font-size: 14px; font-weight: 700; }
+  .k.menu { color: var(--gold); }
+  .abc .k.ctrlkey { font-size: 13px; }
+  .k.ctrlkey { background: var(--key-fn); color: var(--gold); font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; font-size: 14px; font-weight: 700; box-shadow: inset 0 0 0 1.5px rgba(217,164,65,.55), 0 1.5px 0 rgba(0,0,0,.45); }
+  .pad.ctrl-on .k.ctrlkey { background: var(--gold); color: var(--body); }
+  /* con ctrl puesto: cada tecla muestra su segunda función en dorado; las que no tienen se apagan */
+  .pad.ctrl-on .k.has-alt .main { display: none; }
+  .pad.ctrl-on .k.has-alt .alt { position: static; font-size: 15px; font-weight: 600; color: var(--gold); }
+  .pad.ctrl-on .k.has-alt { box-shadow: inset 0 0 0 1.5px rgba(217,164,65,.45), 0 1.5px 0 rgba(0,0,0,.45); }
+  .pad.ctrl-on .keys .k:not(.has-alt):not(.ctrlkey) { opacity: .4; }
+  .pad.ctrl-on .tools button.has-alt { box-shadow: inset 0 0 0 1.5px rgba(217,164,65,.6); }
+  .pad.ctrl-on .tools button.has-alt .alt { font-size: 10px; }
+  .k.down, .tools button.down { filter: brightness(1.35); transform: translateY(1px); box-shadow: none; }
+  .k.go.down { background: var(--accent-hi); }
+  .k sup { font-size: .62em; line-height: 0; position: relative; top: -.15em; }
+  .k sub { font-size: .62em; line-height: 0; }
+  .abc .k { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; font-size: 20px; border-radius: 7px; background: var(--key-num-hi); }
+  .abc .k.num { background: var(--key-num); font-size: 18px; }
+  .abc .k.fn, .abc .k.sw { background: var(--key-fn); font-size: 17px; }
+  .abc .k.sw { font-size: 14px; }
+  .abc .k.del { background: var(--del); }
+  .abc .k.go { background: var(--accent); font-size: 20px; }
+  .abc .k.word { font-size: 12px; letter-spacing: 0; }
+  .k.shift-on { background: var(--key-ink) !important; color: var(--body); }
+
+
+  /* ---------- menú (como la tecla menu de la TI) y diálogos */
+  .mhead { display: flex; align-items: center; gap: 8px; margin: 2px 0 10px; }
+  .mhead h2 { flex: 1; margin: 0; font-size: 16px; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .mhead button { border: 0; background: #343941; color: #F2F3F5; height: 32px; min-width: 32px; padding: 0 10px; border-radius: 16px; font-size: 15px; }
+  .msec { font-size: 11.5px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: var(--gold); margin: 14px 0 7px; }
+  .msec:first-child { margin-top: 2px; }
+  .chips { display: grid; grid-template-columns: repeat(auto-fill, minmax(92px, 1fr)); gap: 6px; }
+  .chips button { border: 0; border-radius: 9px; background: #343941; color: #F2F3F5; min-height: 40px; padding: 4px 6px; text-align: left; line-height: 1.15; }
+  .chips button b { display: block; font-family: "TNSSerif", Georgia, serif; font-weight: 400; font-size: 15px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .chips button span { display: block; font-size: 10.5px; color: #AEB4BF; margin-top: 1px; }
+  .mlist { display: flex; flex-direction: column; }
+  .mlist button { display: flex; align-items: center; gap: 12px; border: 0; border-bottom: 1px solid #343941; background: transparent; color: #F2F3F5; text-align: left; padding: 11px 2px; font-size: 14.5px; }
+  .mlist button .n { width: 20px; flex: none; color: #8C93A1; font-family: ui-monospace, Menlo, monospace; font-size: 13px; text-align: center; }
+  .mlist button .x { flex: 1; min-width: 0; }
+  .mlist button .go { color: #8C93A1; }
+  .mlist button .f { color: #8C93A1; font-family: "TNSSerif", Georgia, serif; font-size: 13px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 40%; }
+  .form { display: flex; flex-direction: column; gap: 12px; }
+  .form label { display: flex; align-items: center; justify-content: space-between; gap: 10px; font-size: 14.5px; }
+  .step { display: flex; align-items: center; gap: 6px; }
+  .step button { width: 36px; height: 36px; border: 0; border-radius: 18px; background: #3B4048; color: #F2F3F5; font-size: 20px; line-height: 1; }
+  .step output { min-width: 28px; text-align: center; font-size: 18px; font-weight: 600; font-variant-numeric: tabular-nums; }
+  .form input[type=text] { width: 55%; height: 36px; border-radius: 8px; border: 1px solid #3B4048; background: #1B1E23; color: #F2F3F5; padding: 0 10px; font-size: 16px; font-family: "TNSSerif", Georgia, serif; }
+  .form .hintx { color: #AEB4BF; font-size: 12.5px; margin: -4px 0 0; }
+  .row-btns button.ok { background: var(--accent); color: #fff; }
+  /* ---------- cargando, ajustes y avisos */
+  .overlay { position: fixed; inset: 0; z-index: 30; background: var(--body); display: flex; align-items: center; justify-content: center; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
+  .load { width: min(320px, 100%); text-align: center; }
+  .load h1 { font-family: "TNSSerif", Georgia, "Times New Roman", serif; font-weight: 400; font-size: 56px; margin: 0 0 2px; line-height: 1.1; }
+  .load .sub { color: var(--key-ink-2); font-size: 14px; margin: 0 0 4px; }
+  .load .sub .f { font-family: "TNSSerif", Georgia, serif; font-size: 16px; color: var(--key-ink); }
+  .load .sub sup { color: var(--gold); font-size: .65em; vertical-align: .6em; line-height: 0; }
+  .load h1 sup { margin-left: .1em; }
+  .load p { color: var(--key-ink-2); font-size: 13.5px; line-height: 1.5; margin: 6px 0; }
+  .bar { height: 6px; border-radius: 3px; background: var(--body-2); overflow: hidden; margin: 18px 0 10px; }
+  .bar i { display: block; height: 100%; width: 4%; background: var(--accent); border-radius: 3px; transition: width .4s ease; }
+  .load .errtxt { color: #FF8A80; font-family: ui-monospace, Menlo, monospace; font-size: 12px; text-align: left; white-space: pre-wrap; word-break: break-word; max-height: 40vh; overflow: auto; }
+  .load button { margin-top: 12px; border: 0; border-radius: 10px; height: 38px; padding: 0 18px; background: var(--accent); color: #fff; font-weight: 600; font-size: 14px; }
+
+  .scrim { position: fixed; inset: 0; z-index: 20; background: rgba(0,0,0,.45); display: flex; align-items: flex-end; justify-content: center; }
+  .sheet {
+    width: 100%; max-width: 460px; max-height: 85dvh; overflow-y: auto; box-sizing: border-box;
+    background: #23272D; color: #F2F3F5; border-radius: 18px 18px 0 0;
+    padding: 14px max(16px, env(safe-area-inset-right, 0px)) calc(16px + env(safe-area-inset-bottom, 0px)) max(16px, env(safe-area-inset-left, 0px));
+  }
+  .sheet h2 { font-size: 16px; margin: 4px 0 12px; }
+  .grab { width: 38px; height: 5px; border-radius: 3px; background: #4A505A; margin: 0 auto 8px; }
+  .field { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 9px 0; border-bottom: 1px solid #343941; font-size: 14.5px; }
+  .field select { background: #1B1E23; color: #F2F3F5; border: 1px solid #3B4048; border-radius: 8px; height: 32px; padding: 0 8px; font-size: 14px; max-width: 60%; }
+  .field input[type=checkbox] { width: 20px; height: 20px; accent-color: var(--accent); }
+  .row-btns { display: flex; gap: 8px; margin-top: 14px; flex-wrap: wrap; }
+  .row-btns button { flex: 1; min-width: 120px; height: 38px; border: 0; border-radius: 10px; background: #3B4048; color: #F2F3F5; font-weight: 600; font-size: 13.5px; }
+  .row-btns button.danger { background: #5A2320; color: #FFB4AB; }
+  .row-btns button.danger.armed { background: #B3261E; color: #fff; }
+  .note { color: #AEB4BF; font-size: 12.5px; line-height: 1.5; margin: 14px 0 0; }
+
+  .dlg { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; background: rgba(0,0,0,.18); z-index: 5; }
+  .dlg-box { min-width: 200px; max-width: 86%; background: var(--screen); color: var(--ink); border-radius: 12px; box-shadow: 0 10px 30px rgba(0,0,0,.3); overflow: hidden; border: 1px solid var(--rule); }
+  .dlg-box .t { background: #2F6FDE; color: #fff; font-weight: 700; font-size: 13.5px; padding: 7px 12px; }
+  .dlg-box .m { padding: 12px; font-size: 14.5px; font-family: "TNSSerif", Georgia, serif; line-height: 1.4; }
+  .dlg-box .b { display: flex; justify-content: flex-end; padding: 0 10px 10px; }
+  .dlg-box button { border: 0; border-radius: 8px; height: 32px; padding: 0 18px; background: #2F6FDE; color: #fff; font-weight: 700; }
+</style>
+
+<div id="app">
+  <div class="top">
+    <div class="brand" aria-label="e a la j pi"><i>e</i><sup><i>j</i>π</sup></div>
+    <button class="chip" id="modeBtn" aria-label="Ajustes de la calculadora">—</button>
+    <button class="icon-btn" id="menuBtn" aria-label="Ajustes">⚙︎</button>
+  </div>
+
+  <div class="screen" id="screen">
+    <div class="hist" id="hist"></div>
+    <div class="line" id="line"><div class="line-in" id="lineIn"><canvas id="lineCv"></canvas></div></div>
+    <div class="busy" id="busy" hidden><span class="spin"></span>Calculando…<button id="cancelBtn">Cancelar</button></div>
+    <div class="dlg" id="dlg" hidden><div class="dlg-box"><div class="t" id="dlgT">Error</div><div class="m" id="dlgM"></div><div class="b"><button id="dlgOk">OK</button></div></div></div>
+  </div>
+
+  <div class="pad" id="pad">
+    <div class="tools" id="tools">
+      <button class="word" data-a="escape" aria-label="Salir (esc)">esc</button>
+      <button data-a="undo" aria-label="Deshacer">↶</button>
+      <button data-a="redo" aria-label="Rehacer">↷</button>
+      <button data-a="left" aria-label="Izquierda" data-rep>◀</button>
+      <button data-a="up" aria-label="Arriba" data-rep>▲</button>
+      <button data-a="down" aria-label="Abajo" data-rep>▼</button>
+      <button data-a="right" aria-label="Derecha" data-rep class="has-alt"><span class="alt">tab</span>▶</button>
+      <button data-a="backspace" aria-label="Borrar (con ctrl: borrar la línea)" data-rep class="del has-alt"><span class="alt">AC</span>⌫</button>
+    </div>
+    <div class="keys" id="keys"></div>
+  </div>
+</div>
+
+<div class="overlay" id="loading">
+  <div class="load">
+    <h1 aria-label="e a la j pi"><i>e</i><sup><i>j</i>π</sup></h1>
+    <p class="sub"><span class="f"><i>e</i><sup><i>j</i>π</sup> + 1 = 0</span> · calculadora CAS</p>
+    <p id="loadTxt">Preparando…</p>
+    <div class="bar"><i id="loadBar"></i></div>
+    <p>La primera vez descarga unos 20&nbsp;MB (Python y SymPy). Todo se calcula en tu teléfono.</p>
+    <div class="errtxt" id="loadErr" hidden></div>
+    <button id="retryBtn" hidden>Reintentar</button>
+  </div>
+</div>
+
+<div class="scrim" id="scrim" hidden>
+  <div class="sheet" role="dialog" aria-label="Ajustes">
+    <div class="grab"></div>
+    <h2>Ajustes del documento</h2>
+    <div class="field"><label for="s_angle">Ángulo</label><select id="s_angle" data-k="angle"><option>Radián</option><option>Grado</option><option>Gradián</option></select></div>
+    <div class="field"><label for="s_mode">Auto o aproximado</label><select id="s_mode" data-k="mode"><option>Auto</option><option>Exacto</option><option>Aproximado</option></select></div>
+    <div class="field"><label for="s_cplx">Formato complejo</label><select id="s_cplx" data-k="cplx"><option>Real</option><option>Rectangular</option><option>Polar</option></select></div>
+    <div class="field"><label for="s_digits">Dígitos</label><select id="s_digits" data-k="digits"></select></div>
+    <div class="field"><label for="s_expfmt">Formato exponencial</label><select id="s_expfmt" data-k="expfmt"><option>Normal</option><option>Científico</option><option>Ingeniería</option><option>Prefijo</option></select></div>
+    <div class="field"><label for="s_imag_j">Mostrar ⅈ como j</label><input type="checkbox" id="s_imag_j" data-k="imag_j"></div>
+    <div class="row-btns">
+      <button id="clearHistBtn" class="danger">Borrar historial</button>
+      <button id="closeSheet">Listo</button>
+    </div>
+    <div class="row-btns"><button id="updBtn">Buscar actualización</button></div>
+    <p class="note">Toca un cálculo del historial para elegirlo y tócalo otra vez para pegarlo en la línea (como ↑ y Enter en la TI). Mantén apretado para copiarlo. <b>↶</b> con la línea vacía deshace el último cálculo. <b>ctrl</b> queda puesto hasta la próxima tecla y da la función dorada: ctrl ⏎ = ≈, ctrl ⌫ = borrar la línea, ctrl ( = [ ], ctrl − = ans. El historial queda guardado en este teléfono.</p>
+    <p class="note" id="verNote"></p>
+  </div>
+</div>
+
+<div class="scrim" id="menuScrim" hidden>
+  <div class="sheet" role="dialog" aria-label="Menú">
+    <div class="grab"></div>
+    <div class="mhead"><button id="mBack" aria-label="Volver" hidden>‹</button><h2 id="mTitle">Menú</h2><button id="mClose" aria-label="Cerrar">✕</button></div>
+    <div id="mBody"></div>
+  </div>
+</div>
+
+<div class="scrim" id="formScrim" hidden>
+  <div class="sheet" role="dialog" aria-label="Diálogo">
+    <div class="grab"></div>
+    <h2 id="fTitle">—</h2>
+    <div class="form" id="fBody"></div>
+    <div class="row-btns"><button id="fCancel">Cancelar</button><button id="fOk" class="ok">OK</button></div>
+  </div>
+</div>
+
+<script>
+(() => {
+  "use strict";
+  const $ = (id) => document.getElementById(id);
+  const DPR = Math.min(3, window.devicePixelRatio || 1);
+  const LS_STATE = "tnscalc.estado", LS_LINE = "tnscalc.linea";
+  const store = {
+    get(k) { try { return localStorage.getItem(k) || ""; } catch (e) { return ""; } },
+    set(k, v) { try { localStorage.setItem(k, v); } catch (e) { /* sin almacenamiento: sigue igual */ } },
+  };
+
+  // ---------------------------------------------------------------- letras (DejaVu, como en el PC)
+  const FONT_FILES = [
+    ["TNSSerif", "fonts/DejaVuSerif.ttf", { style: "normal", weight: "400" }],
+    ["TNSSerif", "fonts/DejaVuSerif-Italic.ttf", { style: "italic", weight: "400" }],
+    ["TNSSerif", "fonts/DejaVuSerif-Bold.ttf", { style: "normal", weight: "700" }],
+    ["TNSSerif", "fonts/DejaVuSerif-BoldItalic.ttf", { style: "italic", weight: "700" }],
+    ["TNSMath", "fonts/DejaVuMathTeXGyre.ttf", { style: "normal", weight: "400" }],
+    ["TNSSans", "fonts/DejaVuSans.ttf", { style: "normal", weight: "400" }],
+  ];
+  const STACK = '"TNSSerif", "TNSMath", "TNSSans", Georgia, serif';
+  async function loadFonts() {
+    await Promise.all(FONT_FILES.map(async ([fam, url, desc]) => {
+      try {
+        const buf = await fetch(url).then((r) => { if (!r.ok) throw new Error(url); return r.arrayBuffer(); });
+        const ff = new FontFace(fam, buf, desc);
+        await ff.load();
+        document.fonts.add(ff);
+      } catch (e) { console.warn("letra", url, e); }
+    }));
+  }
+  const fontOf = (px, it, b) => `${it ? "italic " : ""}${b ? "700 " : "400 "}${px}px ${STACK}`;
+
+  function widthTable() {
+    const cv = document.createElement("canvas"), c = cv.getContext("2d");
+    let chars = "";
+    for (let i = 32; i < 127; i++) chars += String.fromCharCode(i);
+    chars += "ⅈℯ∠°π√∫∑Σ∏Π≤≥≠→▸·×÷−±∞θ′″ᴇᵀʳᵍ…∂ΔΩμαβγδεφωλτσρηκνξψχ∈∪∩⁻¹²³⁰⁴⁵⁶⁷⁸⁹₀₁₂₃₄₅₆₇₈₉áéíóúñÁÉÍÓÚÑü¿¡ℓ∞≈∣‖⌈⌉⌊⌋⟨⟩";
+    const out = {};
+    for (const [key, it, b] of [["r", 0, 0], ["i", 1, 0], ["b", 0, 1], ["bi", 1, 1]]) {
+      c.font = fontOf(100, it, b);
+      const t = { default: c.measureText("0").width };
+      for (const ch of chars) t[ch] = Math.round(c.measureText(ch).width * 100) / 100;
+      out[key] = t;
+    }
+    return out;
+  }
+
+  // ---------------------------------------------------------------- dibujo de las filas
+  const PAL = { "#23252b": "--ink", "#0f6e56": "--unit", "#9aa1b2": "--slot", "#a4a9b6": "--ghost", "#c9ced8": "--faint", "#b3261e": "--err", "#6b7080": "--hint", "#bcd3f7": "--sel" };
+  let palette = {};
+  function readPalette() {
+    const cs = getComputedStyle(document.documentElement);
+    palette = {};
+    for (const [hex, v] of Object.entries(PAL)) palette[hex] = cs.getPropertyValue(v).trim() || hex;
+  }
+  const col = (c) => palette[String(c).toLowerCase()] || c;
+
+  function paint(cv, d) {
+    const w = Math.max(1, Math.ceil(d.w)), h = Math.max(1, Math.ceil(d.h));
+    cv.width = Math.ceil(w * DPR); cv.height = Math.ceil(h * DPR);
+    cv.style.width = w + "px"; cv.style.height = h + "px";
+    const c = cv.getContext("2d");
+    c.setTransform(DPR, 0, 0, DPR, 0, 0);
+    c.clearRect(0, 0, w, h);
+    c.textBaseline = "alphabetic"; c.lineCap = "butt"; c.lineJoin = "round";
+    for (const op of d.ops) {
+      const k = op[0];
+      if (k === "t") {
+        c.font = fontOf(op[4], op[5], op[6]); c.fillStyle = col(op[7]); c.fillText(op[3], op[1], op[2]);
+      } else if (k === "l") {
+        c.strokeStyle = col(op[5]); c.lineWidth = Math.max(0.6, op[6]); c.setLineDash([]);
+        c.beginPath(); c.moveTo(op[1], op[2]); c.lineTo(op[3], op[4]); c.stroke();
+      } else if (k === "r") {
+        c.strokeStyle = col(op[5]); c.lineWidth = Math.max(0.6, op[6]);
+        c.setLineDash(op[7] ? [2.2, 2] : []);
+        c.strokeRect(op[1], op[2], op[3], op[4]);
+        c.setLineDash([]);
+      } else if (k === "p") {
+        c.strokeStyle = col(op[2]); c.lineWidth = Math.max(0.6, op[3]); c.setLineDash([]);
+        c.beginPath();
+        for (const p of op[1]) {
+          if (p[0] === "M") c.moveTo(p[1], p[2]);
+          else if (p[0] === "L") c.lineTo(p[1], p[2]);
+          else if (p[0] === "Q") c.quadraticCurveTo(p[1], p[2], p[3], p[4]);
+        }
+        c.stroke();
+      }
+    }
+  }
+
+  // ---------------------------------------------------------------- hilo de cálculo
+  let worker = null, ready = false, busy = false, nextId = 1, queue = [], busyTimer = 0;
+  let hist = [], rowEls = [], selIdx = null, lastEstado = "", lastLine = null, lastSt = null;
+
+  function startWorker() {
+    ready = false; busy = false; queue = [];
+    worker = new Worker("worker.js", { type: "module" });
+    worker.onmessage = onMsg;
+    worker.onerror = (e) => loadFail("No pude iniciar el núcleo: " + (e.message || e.type));
+    worker.postMessage({ type: "init", table: JSON.stringify(widthTable()), state: store.get(LS_STATE),
+      line: store.get(LS_LINE), ajustes: JSON.stringify({ mode: "Auto", angle: "Grado", cplx: "Polar" }) });
+  }
+  function onMsg(ev) {
+    const m = ev.data;
+    if (m.type === "progress") { $("loadTxt").textContent = m.text; $("loadBar").style.width = Math.round(m.p * 100) + "%"; return; }
+    if (m.type === "ready") {
+      ready = true; $("loadBar").style.width = "100%";
+      apply(JSON.parse(m.st));
+      $("loading").hidden = true;
+      return;
+    }
+    if (m.type === "error") {
+      if (m.fatal) { loadFail(m.text); return; }
+      doneBusy(); toast("Error interno: " + m.text.split("\n").slice(-2).join(" ")); console.error(m.text);
+      pump(); return;
+    }
+    if (m.type === "render") { doneBusy(); apply(JSON.parse(m.st)); pump(); }
+  }
+  function loadFail(t) {
+    $("loading").hidden = false; $("loadTxt").textContent = "No se pudo cargar la calculadora.";
+    const e = $("loadErr"); e.hidden = false; e.textContent = t; $("retryBtn").hidden = false;
+  }
+  $("retryBtn").onclick = () => { $("loadErr").hidden = true; $("retryBtn").hidden = true; if (worker) worker.terminate(); startWorker(); };
+
+  function send(a) {
+    if (!ready) return;
+    if (busy) { if (queue.length < 40) queue.push(a); return; }
+    busy = true;
+    const heavy = a.t === "key" && a.k === "enter";
+    clearTimeout(busyTimer);
+    busyTimer = setTimeout(() => { $("busy").hidden = false; }, heavy ? 250 : 900);
+    worker.postMessage({ type: "action", a, id: nextId++ });
+  }
+  function pump() { if (!busy && queue.length) send(queue.shift()); }
+  function doneBusy() { busy = false; clearTimeout(busyTimer); $("busy").hidden = true; }
+  $("cancelBtn").onclick = () => {          // como el botón "on" de la TI: corta el cálculo
+    worker.terminate(); doneBusy();
+    $("loading").hidden = false; $("loadTxt").textContent = "Cálculo cancelado. Reiniciando…"; $("loadBar").style.width = "10%";
+    startWorker();
+  };
+
+  // ---------------------------------------------------------------- aplicar lo que manda el núcleo
+  function apply(st) {
+    lastSt = st;
+    if (st.hist) buildHist(st.hist);
+    paintLine(st.line);
+    markSel(st.sel);
+    $("modeBtn").textContent = shortMode(st.mode);
+    syncSheet(st.ajustes);
+    if (st.msg) { $("dlgT").textContent = st.msg[0]; $("dlgM").textContent = st.msg[1]; $("dlg").hidden = false; }
+    else $("dlg").hidden = true;
+    if (st.estado && st.estado !== lastEstado) { lastEstado = st.estado; store.set(LS_STATE, st.estado); }
+    if (st.line && st.line.text !== lastLine) { lastLine = st.line.text; store.set(LS_LINE, st.line.text); }
+  }
+
+  function shortMode(m) {
+    return String(m || "").replace("Aproximado", "Aprox").replace("Rectangular", "Rect").replace("Flotante", "Flot")
+      .replace("Exacto", "Exacto").replace(/ · /g, " · ");
+  }
+  function buildHist(h) {
+    hist = h; rowEls = [];
+    const box = $("hist");
+    box.textContent = "";
+    if (!h.length) {
+      const d = document.createElement("div"); d.className = "hist-empty";
+      d.innerHTML = "Escribe un cálculo y aprieta <b>⏎</b>.<br>Prueba <i>solve(x^2−5x+6=0,x)</i> o <i>230∠30/(10+5ⅈ)</i>.";
+      box.appendChild(d);
+    }
+    h.forEach((e, k) => {
+      const div = document.createElement("div"); div.className = "e";
+      const add = (d, cls, txt, flat) => {
+        const r = document.createElement("div"); r.className = "r " + cls;
+        const cv = document.createElement("canvas"); r.appendChild(cv); div.appendChild(r);
+        r._d = d; r._cv = cv;
+        if (flat != null) { r.dataset.flat = flat; r._txt = txt; rowEls[flat] = r; }
+        paint(cv, d);
+      };
+      const base = rowEls.length;
+      add(e.in, "in", (e.txt || [])[0], base);
+      e.outs.forEach((o, j) => add(o, "out", (e.txt || [])[j + 1], base + 1 + j));
+      if (e.hint) add(e.hint, "hint", null, null);
+      box.appendChild(div);
+    });
+    requestAnimationFrame(() => { box.scrollTop = box.scrollHeight; });
+  }
+  function repaintAll() {
+    readPalette();
+    document.querySelectorAll(".r").forEach((r) => paint(r._cv, r._d));
+    if (lastSt) paintLine(lastSt.line);
+  }
+  function markSel(i) {
+    if (selIdx != null && rowEls[selIdx]) rowEls[selIdx].classList.remove("sel");
+    selIdx = i;
+    const r = i != null ? rowEls[i] : null;
+    if (r) { r.classList.add("sel"); r.scrollIntoView({ block: "nearest" }); }
+  }
+
+  let caretEl = null, selEl = null;
+  function paintLine(L) {
+    if (!L) return;
+    const cv = $("lineCv"), wrap = $("line"), inner = $("lineIn");
+    paint(cv, L);
+    if (!caretEl) { caretEl = document.createElement("div"); caretEl.className = "caret"; inner.appendChild(caretEl); }
+    if (!selEl) { selEl = document.createElement("div"); selEl.className = "selbox"; inner.insertBefore(selEl, cv); }
+    cv.style.position = "relative";
+    const [x, t, b] = L.caret;
+    caretEl.hidden = !!L.hm;
+    caretEl.style.left = (x - 1) + "px"; caretEl.style.top = t + "px"; caretEl.style.height = Math.max(8, b - t) + "px";
+    caretEl.style.animation = "none"; void caretEl.offsetWidth; caretEl.style.animation = "";
+    if (L.sel) {
+      const [x0, x1, t0, b0] = L.sel;
+      selEl.hidden = false;
+      Object.assign(selEl.style, { left: Math.min(x0, x1) + "px", width: Math.abs(x1 - x0) + "px", top: t0 + "px", height: (b0 - t0) + "px" });
+    } else selEl.hidden = true;
+    const pad = 24, vis = wrap.clientWidth;
+    if (x - wrap.scrollLeft > vis - pad) wrap.scrollLeft = x - vis + pad;
+    else if (x - wrap.scrollLeft < pad) wrap.scrollLeft = Math.max(0, x - pad);
+  }
+
+  // ---------------------------------------------------------------- toques en la pantalla
+  let pressTimer = 0, pressed = null, moved = false, sx = 0, sy = 0;
+  $("hist").addEventListener("pointerdown", (ev) => {
+    const r = ev.target.closest(".r[data-flat]"); if (!r) return;
+    pressed = r; moved = false; sx = ev.clientX; sy = ev.clientY;
+    clearTimeout(pressTimer);
+    pressTimer = setTimeout(() => { if (pressed && !moved) { copyText(pressed._txt); pressed = null; } }, 550);
+  });
+  $("hist").addEventListener("pointermove", (ev) => { if (pressed && (Math.abs(ev.clientX - sx) > 8 || Math.abs(ev.clientY - sy) > 8)) moved = true; });
+  $("hist").addEventListener("pointerup", () => {
+    clearTimeout(pressTimer);
+    if (pressed && !moved) send({ t: "tapHist", i: Number(pressed.dataset.flat) });
+    pressed = null;
+  });
+  $("hist").addEventListener("pointercancel", () => { clearTimeout(pressTimer); pressed = null; });
+  $("line").addEventListener("pointerup", (ev) => {
+    const rc = $("lineCv").getBoundingClientRect();
+    send({ t: "tapLine", x: ev.clientX - rc.left, y: ev.clientY - rc.top });
+  });
+  $("dlgOk").onclick = () => send({ t: "key", k: "escape" });
+
+  async function copyText(t) {
+    if (!t) return;
+    try { await navigator.clipboard.writeText(t); toast("Copiado: " + (t.length > 40 ? t.slice(0, 40) + "…" : t)); }
+    catch (e) { toast("No pude copiar"); }
+  }
+  let toastEl = null, toastT = 0;
+  function toast(t) {
+    if (!toastEl) { toastEl = document.createElement("div"); toastEl.className = "toast"; $("screen").appendChild(toastEl); }
+    toastEl.textContent = t; toastEl.hidden = false;
+    clearTimeout(toastT); toastT = setTimeout(() => { toastEl.hidden = true; }, 1600);
+  }
+
+  // ---------------------------------------------------------------- teclado en pantalla
+  const T = (s) => ({ t: "seq", keys: [...s].map((ch) => ({ k: "text", text: ch })) });
+  const K = (k, x) => Object.assign({ t: "key", k }, x || {});
+  const B = (kind) => ({ t: "box", kind });
+  const SEQ = (...ks) => ({ t: "seq", keys: ks.map((k) => (typeof k === "string" ? { k: "text", text: k } : k)) });
+  const RIGHT = { k: "right" };
+  // cada tecla: l = lo que dice, a = qué hace, c = estilo, s / sa = segunda función (con ctrl), n = columnas que ocupa
+  const k = (l, a, c, s, sa, n) => ({ l, a, c, s, sa, n });
+  const FRAC = '<span style="display:inline-flex;flex-direction:column;align-items:center;font-size:.72em;line-height:1"><span>□</span><span style="border-top:1.5px solid;padding-top:1px">□</span></span>';
+  const PAGES = {
+    main: [
+      k("menú", { menu: true }, "sw menu"),
+      k("sin", T("sin("), "fn", "sin⁻¹", T("sin⁻¹(")), k("cos", T("cos("), "fn", "cos⁻¹", T("cos⁻¹(")), k("tan", T("tan("), "fn", "tan⁻¹", T("tan⁻¹(")),
+      k("∠", T("∠"), "fn gold", "°", T("°")), k("ⅈ", T("ⅈ"), "fn gold", "π", T("π")),
+
+      k("x<sup>2</sup>", SEQ("^", "2", RIGHT), "fn", "x⁻¹", SEQ("^", "-", "1", RIGHT)), k("□<sup>□</sup>", K("text", { text: "^" }), "fn", "ⁿ√", B("nroot")),
+      k("7", T("7")), k("8", T("8")), k("9", T("9")), k("÷", T("/"), "op", "□/□", K("frac")),
+
+      k("√", B("sqrt"), "fn", "|□|", B("abs")), k(FRAC, K("frac"), "fn", "d/dx", B("deriv")),
+      k("4", T("4")), k("5", T("5")), k("6", T("6")), k("×", T("*"), "op", "∫", B("int_def")),
+
+      k("ℯ<sup>x</sup>", { t: "power", base: "ℯ" }, "fn", "10ˣ", T("10^")), k("ln", T("ln("), "fn", "log", B("log")),
+      k("1", T("1")), k("2", T("2")), k("3", T("3")), k("−", T("-"), "op", "ans", T("Ans")),
+
+      k("(", T("("), "fn", "[ ]", T("[")), k(")", T(")"), "fn", "{ }", T("{")),
+      k("0", T("0")), k(".", T("."), "", "ᴇ", T("ᴇ")), k(",", T(","), "fn", "|", T("|")), k("+", T("+"), "op", ":=", T(":=")),
+
+      k("ctrl", "ctrl", "ctrlkey"), k("abc", { page: "abc" }, "sw"), k("ƒ(x)", { page: "fn" }, "sw"),
+      k("<i>x</i>", T("x"), "fn", "y", T("y")), k("=", T("="), "fn", "≠", T("≠")),
+      k("⏎", K("enter"), "go", "≈", K("enter", { ctrl: true })),
+    ],
+    fn: [
+      k("solve", T("solve("), "fn word"), k("nSolve", T("nSolve("), "fn word"), k("cSolve", T("cSolve("), "fn word"),
+      k("factor", T("factor("), "fn word"), k("expand", T("expand("), "fn word"), k("approx", T("approx("), "fn word"),
+
+      k("d/d<i>x</i>", B("deriv"), "fn", "d²", B("deriv2")), k("∫<sub>a</sub><sup>b</sup>", B("int_def"), "fn", "∫", B("int")),
+      k("Σ", B("sum"), "fn", "Π", B("prod")), k("lim", B("lim"), "fn word"), k("|□|", B("abs"), "fn"), k("▸", T("▸"), "fn gold"),
+
+      k("<sup>n</sup>√", B("nroot"), "fn"), k("log<sub>□</sub>", B("log"), "fn"),
+      k("sin<sup>-1</sup>", T("sin⁻¹("), "fn"), k("cos<sup>-1</sup>", T("cos⁻¹("), "fn"), k("tan<sup>-1</sup>", T("tan⁻¹("), "fn"), k("_", T("_"), "fn unit", "|", T("|")),
+
+      k("[2×2]", B("matrix:2x2"), "fn word", "3×3", B("matrix:3x3")), k("{sist", { t: "system", n: 2, fn: "solve", vars: "x,y" }, "fn word", "3 ec.", { t: "system", n: 3, fn: "solve", vars: "x,y,z" }),
+      k("{ }", T("{"), "fn"), k("_A", T("_A"), "fn unit"), k("_W", T("_W"), "fn unit"), k("_Hz", T("_Hz"), "fn unit"),
+
+      k(":=", T(":="), "fn"), k("&lt;", T("<"), "fn", "≤", T("≤")), k("&gt;", T(">"), "fn", "≥", T("≥")),
+      k("≠", T("≠"), "fn"), k("_Ω", T("_Ω"), "fn unit"), k("_V", T("_V"), "fn unit"),
+
+      k("abc", { page: "abc" }, "sw"), k("123", { page: "main" }, "sw"), k("ctrl", "ctrl", "ctrlkey"),
+      k("menú", { menu: true }, "sw menu"), k("⏎", K("enter"), "go", "≈", K("enter", { ctrl: true }), 2),
+    ],
+  };
+  let page = "main", shift = false, ctrl = false;
+  function abcKeys() {
+    const L = (s, c, n) => [...s].map((ch) => { const v = shift ? ch.toUpperCase() : ch; return k(v, T(v), c || "", null, null, n || 2); });
+    const row2 = L("asdfghjkl");
+    row2[0].start = 2;                                   // fila del medio corrida media tecla, como en el celular
+    return [
+      ...L("1234567890", "num"),
+      ...L("qwertyuiop"),
+      ...row2,
+      k("⇧", "shift", shift ? "fn shift-on" : "fn", null, null, 3), ...L("zxcvbnm"), Object.assign(k("⌫", K("backspace"), "del", null, null, 3), { rep: true }),
+      k("ctrl", "ctrl", "ctrlkey", null, null, 2),
+      k("(", T("("), "fn", "[ ]", T("["), 2), k(")", T(")"), "fn", "{ }", T("{"), 2), k(",", T(","), "fn", "|", T("|"), 2),
+      k("=", T("="), "fn", "≠", T("≠"), 2), k("+", T("+"), "fn", ":=", T(":="), 2), k("−", T("-"), "fn", "ans", T("Ans"), 2),
+      k("×", T("*"), "fn", "∫", B("int_def"), 2), k("÷", T("/"), "fn", "□/□", K("frac"), 2), k("^", K("text", { text: "^" }), "fn", "ⁿ√", B("nroot"), 2),
+      k("123", { page: "main" }, "sw", null, null, 3), k("menú", { menu: true }, "sw menu", null, null, 3),
+      k("espacio", T(" "), "word", null, null, 6), k(".", T("."), "fn", "ᴇ", T("ᴇ"), 2), k("⏎", K("enter"), "go", "≈", K("enter", { ctrl: true }), 6),
+    ];
+  }
+  function renderKeys() {
+    const box = $("keys");
+    box.className = "keys" + (page === "abc" ? " abc" : "");
+    box.textContent = "";
+    for (const spec of (page === "abc" ? abcKeys() : PAGES[page])) {
+      const b = document.createElement("button");
+      b.className = "k " + (spec.c || "") + (spec.s ? " has-alt" : "");
+      b.innerHTML = (spec.s ? `<span class="alt">${spec.s}</span>` : "") + `<span class="main">${spec.l}</span>`;
+      if (spec.n) b.style.gridColumn = (spec.start ? spec.start + " / " : "") + "span " + spec.n;
+      b._spec = spec;
+      if (spec.rep) b.dataset.rep = "";
+      box.appendChild(b);
+    }
+  }
+  function setCtrl(v) { ctrl = v; $("pad").classList.toggle("ctrl-on", v); }
+
+  const TOOL = {
+    undo: { t: "undo" }, redo: { t: "redo" }, left: K("left"), right: K("right"), up: K("up"), down: K("down"),
+    backspace: K("backspace"), escape: K("escape"),
+  };
+  const TOOL_CTRL = { backspace: { t: "clear" }, right: K("tab"), left: K("backtab") };
+  // apretar = al tocar (sin esperar a soltar), y ⌫ / flechas se repiten si se mantienen.
+  // ctrl queda puesto (dorado) hasta la próxima tecla: no hay que apretar dos cosas a la vez.
+  let repT = 0, repI = 0;
+  function fire(btn, repeat) {
+    const spec = btn._spec;
+    if (spec) {
+      if (spec.a === "ctrl") { setCtrl(!ctrl); return; }
+      if (spec.a === "shift") { shift = !shift; renderKeys(); return; }
+      if (spec.a && spec.a.page) { page = spec.a.page; shift = false; renderKeys(); return; }
+      if (spec.a && spec.a.menu) { setCtrl(false); openMenu(); return; }
+      const a = ctrl && !repeat && spec.sa ? spec.sa : spec.a;
+      if (ctrl && !repeat) setCtrl(false);
+      send(a);
+      if (page === "abc" && shift && a.t === "seq") { shift = false; renderKeys(); }
+      return;
+    }
+    const name = btn.dataset.a;
+    const a = (ctrl && !repeat && TOOL_CTRL[name]) || TOOL[name];
+    if (ctrl && !repeat) setCtrl(false);
+    if (a) send(a);
+  }
+  $("pad").addEventListener("pointerdown", (ev) => {
+    const btn = ev.target.closest(".k, .tools button"); if (!btn) return;
+    ev.preventDefault();
+    btn.classList.add("down");
+    const wasCtrl = ctrl;
+    fire(btn, false);
+    if (btn.hasAttribute("data-rep") && !(wasCtrl && btn.dataset.a && TOOL_CTRL[btn.dataset.a])) {
+      clearTimeout(repT); clearInterval(repI);
+      repT = setTimeout(() => { repI = setInterval(() => { if (!busy) fire(btn, true); }, 75); }, 420);
+    }
+    const up = () => { btn.classList.remove("down"); clearTimeout(repT); clearInterval(repI); window.removeEventListener("pointerup", up); window.removeEventListener("pointercancel", up); };
+    window.addEventListener("pointerup", up); window.addEventListener("pointercancel", up);
+  });
+
+
+  // ---------------------------------------------------------------- menú (como la tecla menu de la TI) y diálogos
+  let MENU = null;
+  fetch("menu.json").then((r) => r.json()).then((d) => { MENU = d; }).catch(() => { MENU = []; });
+  const QUICK = [
+    ["Eléctrica · complejos", [
+      ["▸Rect", "a rectangular", "▸Rect"], ["▸Polar", "a polar", "▸Polar"], ["real( )", "parte real", "real(|)"],
+      ["imag( )", "parte imaginaria", "imag(|)"], ["abs( )", "magnitud", "abs(|)"], ["angle( )", "ángulo", "angle(|)"],
+      ["conj( )", "conjugado", "conj(|)"], ["▸Decimal", "a decimal", "▸Decimal"], ["par( )", "en paralelo", "par(|)"],
+    ]],
+    ["Eléctrica · por unidad y trifásico", [
+      ["zbase( )", "Z base", "zbase(|)"], ["ibase( )", "I base", "ibase(|)"], ["zpu( )", "Z en pu", "zpu(|)"],
+      ["cambiobase( )", "cambio de base", "cambiobase(|)"], ["pot3f( )", "S, P, Q trifásica", "pot3f(|)"],
+      ["s3f( )", "S trifásica", "s3f(|)"], ["scomp( )", "S = V·I*", "scomp(|)"], ["delta2y( )", "Δ → Y", "delta2y(|)"],
+      ["y2delta( )", "Y → Δ", "y2delta(|)"], ["linea( )", "V fase → línea", "linea(|)"], ["fase( )", "V línea → fase", "fase(|)"],
+    ]],
+    ["Matrices", [
+      ["eigVl( )", "valores propios", "eigVl(|)"], ["eigVc( )", "vectores propios", "eigVc(|)"], ["det( )", "determinante", "det(|)"],
+      ["Aᵀ", "transpuesta", "ᵀ"], ["rref( )", "escalonada red.", "rref(|)"], ["identity( )", "identidad", "identity(|)"],
+      ["[m×n]…", "matriz de m×n", "@matrix"],
+    ]],
+    ["Ecuaciones", [
+      ["{ sistema…", "n ecuaciones y variables", "@system"], ["{ lineal…", "sistema lineal", "@linsystem"],
+      ["solve( )", "resolver", "solve(|)"], ["nSolve( )", "numérica", "nSolve(|)"], ["cSolve( )", "complejas", "cSolve(|)"],
+      ["zeros( )", "ceros", "zeros(|)"], ["polyRoots( )", "raíces polinomio", "polyRoots(|,x)"],
+    ]],
+  ];
+  let mStack = [];
+  function openMenu() { mStack = []; renderMenu(); $("menuScrim").hidden = false; }
+  function closeMenu() { $("menuScrim").hidden = true; }
+  $("mClose").onclick = closeMenu;
+  $("mBack").onclick = () => { mStack.pop(); renderMenu(); };
+  $("menuScrim").addEventListener("click", (ev) => { if (ev.target === $("menuScrim")) closeMenu(); });
+  const esc = (t) => String(t).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+  function renderMenu() {
+    const body = $("mBody");
+    body.textContent = "";
+    const top = mStack.length ? mStack[mStack.length - 1] : null;
+    $("mBack").hidden = !top;
+    $("mTitle").textContent = top ? mStack.map((n) => n.c).join(" ") + "  " + top.t : "Menú";
+    if (!top) {
+      for (const [title, items] of QUICK) {
+        const h = document.createElement("div"); h.className = "msec"; h.textContent = title; body.appendChild(h);
+        const g = document.createElement("div"); g.className = "chips";
+        for (const [lab, sub, act] of items) {
+          const b = document.createElement("button");
+          b.innerHTML = `<b>${esc(lab)}</b><span>${esc(sub)}</span>`;
+          b.onclick = () => runMenu(act, lab);
+          g.appendChild(b);
+        }
+        body.appendChild(g);
+      }
+      const h = document.createElement("div"); h.className = "msec"; h.textContent = "Menú de la TI"; body.appendChild(h);
+    }
+    const list = document.createElement("div"); list.className = "mlist";
+    for (const it of (top ? top.k : (MENU || []))) {
+      const b = document.createElement("button");
+      const f = it.a && !it.a.startsWith("@") ? `<span class="f">${esc(it.a.replace("|", ""))}</span>` : "";
+      b.innerHTML = `<span class="n">${esc(it.c)}</span><span class="x">${esc(it.t)}</span>` + (it.k ? '<span class="go">›</span>' : f);
+      b.onclick = () => { if (it.k) { mStack.push(it); renderMenu(); $("mBody").parentElement.scrollTop = 0; } else runMenu(it.a, it.t); };
+      list.appendChild(b);
+    }
+    body.appendChild(list);
+  }
+  function runMenu(a, label) {
+    closeMenu();
+    if (!a) { toast("«" + label + "» todavía no está"); return; }
+    if (a.startsWith("@set:")) { const [kk, v] = a.slice(5).split("="); send({ t: "mode", k: kk, v }); return; }
+    if (a.startsWith("@tpl:")) { send(B(a.slice(5))); return; }
+    if (a === "@system" || a === "@linsystem") { systemDialog(a === "@system"); return; }
+    if (a === "@matrix") { matrixDialog(); return; }
+    if (a === "@clear_history") { send({ t: "clearHist" }); return; }
+    if (a === "@settings") { $("scrim").hidden = false; return; }
+    if (a === "@polyroots") { send({ t: "menu", s: "polyRoots(|,x)" }); return; }
+    if (a === "@derivative_at") { send({ t: "menu", s: "derivative(|,x=)" }); return; }
+    send({ t: "menu", s: a });
+  }
+
+  // diálogos: número de ecuaciones y variables, tamaño de la matriz
+  let fOk = null;
+  function openForm(title, build, ok) {
+    $("fTitle").textContent = title;
+    const body = $("fBody"); body.textContent = "";
+    build(body);
+    fOk = ok;
+    $("formScrim").hidden = false;
+  }
+  $("fCancel").onclick = () => { $("formScrim").hidden = true; };
+  $("fOk").onclick = () => { $("formScrim").hidden = true; if (fOk) fOk(); };
+  $("formScrim").addEventListener("click", (ev) => { if (ev.target === $("formScrim")) $("formScrim").hidden = true; });
+  function stepper(body, label, val, lo, hi, onChange) {
+    const l = document.createElement("label");
+    l.innerHTML = `<span>${esc(label)}</span><span class="step"><button type="button" aria-label="menos">−</button><output>${val}</output><button type="button" aria-label="más">+</button></span>`;
+    const [minus, plus] = l.querySelectorAll("button"), out = l.querySelector("output");
+    const set = (v) => { val = Math.max(lo, Math.min(hi, v)); out.textContent = val; if (onChange) onChange(val); };
+    minus.onclick = (e) => { e.preventDefault(); set(val - 1); };
+    plus.onclick = (e) => { e.preventDefault(); set(val + 1); };
+    body.appendChild(l);
+    return () => val;
+  }
+  const NAMES = ["x", "y", "z", "w", "u", "v", "s", "t"];
+  function systemDialog(general) {
+    let getN, inp, auto = true;
+    openForm(general ? "Resolver sistema de ecuaciones" : "Resolver sistema de ecuaciones lineales", (body) => {
+      getN = stepper(body, "Número de ecuaciones", 2, 1, 8, (n) => { if (auto) inp.value = NAMES.slice(0, n).join(","); });
+      const l = document.createElement("label");
+      l.innerHTML = '<span>Variables</span><input type="text" autocomplete="off" autocapitalize="off" spellcheck="false">';
+      inp = l.querySelector("input"); inp.value = "x,y";
+      inp.addEventListener("input", () => { auto = false; });
+      body.appendChild(l);
+      const h = document.createElement("p"); h.className = "hintx"; h.textContent = "Nombres de las variables separados con comas (por ejemplo i1,i2,i3)."; body.appendChild(h);
+    }, () => {
+      const vs = inp.value.trim().replace(/^\{|\}$/g, "") || "x,y";
+      send({ t: "system", n: getN(), fn: general ? "solve" : "linSolve", vars: vs });
+    });
+  }
+  function matrixDialog() {
+    let gr, gc;
+    openForm("Crear una matriz", (body) => {
+      gr = stepper(body, "Número de filas", 3, 1, 9);
+      gc = stepper(body, "Número de columnas", 3, 1, 9);
+    }, () => send(B("matrix:" + gr() + "x" + gc())));
+  }
+  // ---------------------------------------------------------------- teclado físico (PC o teclado bluetooth)
+  const PHYS = { Enter: "enter", Escape: "escape", ArrowLeft: "left", ArrowRight: "right", ArrowUp: "up", ArrowDown: "down", Backspace: "backspace", Delete: "delete", Tab: "tab", Home: "home", End: "end" };
+  window.addEventListener("keydown", (ev) => {
+    if (!$("scrim").hidden || !$("menuScrim").hidden || !$("formScrim").hidden) return;
+    if (ev.target && /^(INPUT|SELECT|TEXTAREA)$/.test(ev.target.tagName)) return;
+    const k = PHYS[ev.key];
+    if (k) {
+      ev.preventDefault();
+      send(K(k === "tab" && ev.shiftKey ? "backtab" : k, { ctrl: ev.ctrlKey || ev.metaKey, shift: ev.shiftKey }));
+      return;
+    }
+    if ((ev.ctrlKey || ev.metaKey) && ev.key.length === 1) {
+      if (ev.key.toLowerCase() === "v") return;            // lo hace el evento "paste"
+      ev.preventDefault();
+      send(K("text", { text: ev.key, ctrl: true, shift: ev.shiftKey }));
+      return;
+    }
+    if (ev.key.length === 1 || ev.key === "Dead") {
+      if (ev.key === "Dead") return;
+      ev.preventDefault();
+      send(K("text", { text: ev.key }));
+    }
+  });
+  window.addEventListener("paste", (ev) => {
+    const t = (ev.clipboardData && ev.clipboardData.getData("text")) || "";
+    if (t) { ev.preventDefault(); send({ t: "paste", s: t }); }
+  });
+
+  // ---------------------------------------------------------------- ajustes
+  const dig = $("s_digits");
+  ["Flotante", ...Array.from({ length: 12 }, (_, i) => "Flotante" + (i + 1)), ...Array.from({ length: 13 }, (_, i) => "Fijo" + i)]
+    .forEach((v) => { const o = document.createElement("option"); o.textContent = v; dig.appendChild(o); });
+  function syncSheet(aj) {
+    if (!aj) return;
+    document.querySelectorAll(".sheet [data-k]").forEach((el) => {
+      const v = aj[el.dataset.k];
+      if (el.type === "checkbox") el.checked = !!v; else if (v != null) el.value = v;
+    });
+  }
+  document.querySelectorAll(".sheet [data-k]").forEach((el) => el.addEventListener("change", () => {
+    send({ t: "mode", k: el.dataset.k, v: el.type === "checkbox" ? el.checked : el.value });
+  }));
+  const openSheet = () => { $("scrim").hidden = false; };
+  $("modeBtn").onclick = openSheet; $("menuBtn").onclick = openSheet;
+  $("closeSheet").onclick = () => { $("scrim").hidden = true; disarm(); };
+  $("scrim").addEventListener("click", (ev) => { if (ev.target === $("scrim")) { $("scrim").hidden = true; disarm(); } });
+  const ch = $("clearHistBtn");
+  function disarm() { ch.classList.remove("armed"); ch.textContent = "Borrar historial"; }
+  ch.onclick = () => {
+    if (!ch.classList.contains("armed")) { ch.classList.add("armed"); ch.textContent = "¿Seguro? Toca otra vez"; return; }
+    disarm(); send({ t: "clearHist" }); $("scrim").hidden = true;
+  };
+
+  // ---------------------------------------------------------------- tema claro / oscuro
+  const mq = window.matchMedia("(prefers-color-scheme: dark)");
+  (mq.addEventListener ? mq.addEventListener.bind(mq, "change") : mq.addListener.bind(mq))(() => repaintAll());
+  new MutationObserver(() => repaintAll()).observe(document.documentElement, { attributes: true, attributeFilter: ["data-theme"] });
+  window.addEventListener("resize", () => { if (lastSt) paintLine(lastSt.line); });
+
+  // ---------------------------------------------------------------- versión instalable (GitHub Pages)
+  const APP_VERSION = "2026-10-26";
+  $("verNote").textContent = "e^jπ · versión " + APP_VERSION + " · mismo núcleo que TNS Estudio (Python + SymPy en el teléfono).";
+  try {
+    if ("serviceWorker" in navigator && window.isSecureContext && !/claude/.test(location.hostname))
+      navigator.serviceWorker.register("sw.js").catch(() => {});
+  } catch (e) { /* sin service worker: igual funciona con internet */ }
+  $("updBtn").onclick = async () => {
+    $("updBtn").textContent = "Buscando…";
+    try { const r = await navigator.serviceWorker.getRegistration(); if (r) await r.update(); } catch (e) { /* nada */ }
+    location.reload();
+  };
+
+  // ---------------------------------------------------------------- arranque
+  renderKeys();
+  readPalette();
+  loadFonts().then(() => { $("loadBar").style.width = "6%"; startWorker(); });
+})();
+</script>
+</body>
+</html>
