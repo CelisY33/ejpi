@@ -94,6 +94,7 @@
 
   /* ---------- barra de arriba */
   .top { display: flex; align-items: center; gap: 8px; height: 30px; flex: none; }
+  .ver { font: 600 10.5px/1 ui-monospace, "SF Mono", Menlo, Consolas, monospace; color: var(--key-ink-2); white-space: nowrap; margin-left: -4px; align-self: flex-end; padding-bottom: 5px; }
   .brand { font-family: "TNSSerif", Georgia, "Times New Roman", serif; font-size: 22px; line-height: 1; color: var(--key-ink); white-space: nowrap; padding-right: 2px; }
   .brand sup, .load h1 sup { color: var(--gold); font-size: .6em; margin-left: .04em; vertical-align: .75em; line-height: 0; }
   .chip {
@@ -262,6 +263,7 @@
 <div id="app">
   <div class="top">
     <div class="brand" aria-label="e a la j pi"><i>e</i><sup><i>j</i>π</sup></div>
+    <span class="ver" id="verTag"></span>
     <button class="chip" id="modeBtn" aria-label="Ajustes de la calculadora">—</button>
     <button class="icon-btn" id="menuBtn" aria-label="Ajustes">⚙︎</button>
   </div>
@@ -293,7 +295,7 @@
 <div class="overlay" id="loading">
   <div class="load">
     <h1 aria-label="e a la j pi"><i>e</i><sup><i>j</i>π</sup></h1>
-    <p class="sub"><span class="f"><i>e</i><sup><i>j</i>π</sup> + 1 = 0</span> · calculadora CAS</p>
+    <p class="sub"><span class="f"><i>e</i><sup><i>j</i>π</sup> + 1 = 0</span> · calculadora CAS · <span id="loadVer"></span></p>
     <p id="loadTxt">Preparando…</p>
     <div class="bar"><i id="loadBar"></i></div>
     <p>La primera vez descarga unos 20&nbsp;MB (Python y SymPy). Todo se calcula en tu teléfono.</p>
@@ -862,6 +864,7 @@
     for (const ch of t) if (ch !== "\n") send(K("text", { text: ch }));
   });
   window.addEventListener("keydown", (ev) => {
+    if (DESK && document.activeElement !== kbd && ev.target === document.body) grab();   // Vimium le quitó el foco al cargar
     if (!$("scrim").hidden || !$("menuScrim").hidden || !$("formScrim").hidden) return;
     if (ev.target && ev.target !== kbd && /^(INPUT|SELECT|TEXTAREA)$/.test(ev.target.tagName)) return;
     const k = PHYS[ev.key];
@@ -919,8 +922,16 @@
   window.addEventListener("resize", () => { if (lastSt) paintLine(lastSt.line); });
 
   // ---------------------------------------------------------------- versión instalable (GitHub Pages)
-  const APP_VERSION = "2026-10-26";
+  // versión: va a la par con TNS Estudio (1.1 beta = la beta del PC del 26-10-2026)
+  const APP_VERSION = "1.1 beta";
+  $("verTag").textContent = "v" + APP_VERSION;
+  $("loadVer").textContent = "v" + APP_VERSION;
   $("verNote").textContent = "e^jπ · versión " + APP_VERSION + " · mismo núcleo que TNS Estudio (Python + SymPy en el teléfono).";
+  (() => {
+    const prev = store.get("ejpi.version");
+    if (prev && prev !== APP_VERSION) setTimeout(() => toast("Actualizada a la versión " + APP_VERSION), 1200);
+    store.set("ejpi.version", APP_VERSION);
+  })();
   try {
     if ("serviceWorker" in navigator && window.isSecureContext && !/claude/.test(location.hostname))
       navigator.serviceWorker.register("sw.js").catch(() => {});
