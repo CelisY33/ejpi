@@ -47,19 +47,24 @@
     --sel: #D6E4FA;
     --sel-line: #9DBDF2;
     --caret: #23252B;
+    --gpanel: rgba(251,251,248,.92);
+    --gminor: #EEF0EC;
+    --gmajor: #D9DCD6;
+    --gaxis: #4B5060;
+    --glabel: #5A6070;
     color-scheme: light;
   }
   @media (prefers-color-scheme: dark) {
     :root:not([data-theme="light"]) {
       --screen: #14171B; --screen-2: #1A1E23; --rule: #2A2F36; --ink: #E7E9EE; --unit: #52C7A4;
       --slot: #6E7689; --ghost: #5F6675; --faint: #474D58; --err: #FF8A80; --hint: #949BAA;
-      --sel: #213451; --sel-line: #3E66A8; --caret: #E7E9EE; color-scheme: dark;
+      --sel: #213451; --sel-line: #3E66A8; --caret: #E7E9EE; --gpanel: rgba(26,30,35,.92); --gminor: #1C2026; --gmajor: #2A2F37; --gaxis: #9AA1AE; --glabel: #9097A6; color-scheme: dark;
     }
   }
   :root[data-theme="dark"] {
     --screen: #14171B; --screen-2: #1A1E23; --rule: #2A2F36; --ink: #E7E9EE; --unit: #52C7A4;
     --slot: #6E7689; --ghost: #5F6675; --faint: #474D58; --err: #FF8A80; --hint: #949BAA;
-    --sel: #213451; --sel-line: #3E66A8; --caret: #E7E9EE; color-scheme: dark;
+    --sel: #213451; --sel-line: #3E66A8; --caret: #E7E9EE; --gpanel: rgba(26,30,35,.92); --gminor: #1C2026; --gmajor: #2A2F37; --gaxis: #9AA1AE; --glabel: #9097A6; color-scheme: dark;
   }
 
   [hidden] { display: none !important; }
@@ -197,6 +202,44 @@
   .k.shift-on { background: var(--key-ink) !important; color: var(--body); }
 
 
+  /* ---------- modo Calc / Gráf */
+  .modes { display: flex; flex: none; gap: 2px; background: #121417; border-radius: 13px; padding: 2px; }
+  .modes button { border: 0; height: 22px; padding: 0 9px; border-radius: 11px; background: transparent; color: var(--key-ink-2); font: 600 12px/22px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; }
+  .modes button[aria-pressed="true"] { background: var(--key-num); color: var(--key-ink); }
+  body.graph .chip { display: none; }
+  body.graph .top { justify-content: space-between; }
+
+  /* ---------- gráfico */
+  .gwrap { flex: 1; min-height: 0; position: relative; overflow: hidden; touch-action: none; }
+  #gcv { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
+  .gtop { position: absolute; left: 0; right: 0; top: 0; display: flex; flex-direction: column; gap: 4px; padding: 6px 6px 0; pointer-events: none; }
+  .gobjs { display: flex; gap: 6px; overflow-x: auto; scrollbar-width: none; pointer-events: auto; padding-bottom: 2px; }
+  .gobjs::-webkit-scrollbar { display: none; }
+  .gchip { flex: none; display: flex; align-items: center; gap: 4px; height: 32px; padding: 0 8px 0 4px; border-radius: 16px; background: var(--gpanel); border: 1px solid var(--rule); box-shadow: 0 1px 3px rgba(0,0,0,.12); }
+  .gchip.sel { border-color: var(--accent); box-shadow: 0 0 0 1.5px var(--accent); }
+  .gchip.err canvas { opacity: .75; }
+  .gchip.hid canvas { opacity: .4; }
+  .gchip .dot { flex: none; width: 24px; height: 24px; border: 0; background: transparent; padding: 0; display: flex; align-items: center; justify-content: center; }
+  .gchip .dot i { display: block; width: 13px; height: 13px; border-radius: 50%; border: 2.5px solid; box-sizing: border-box; }
+  .gchip canvas { display: block; }
+  .gsliders { display: flex; flex-direction: column; gap: 4px; pointer-events: auto; align-self: flex-start; max-width: 100%; }
+  .gsl { display: flex; align-items: center; gap: 6px; height: 28px; padding: 0 3px 0 10px; border-radius: 15px; background: var(--gpanel); border: 1px solid var(--rule); color: var(--ink); font: 14px "TNSSerif", Georgia, serif; }
+  .gsl input[type=range] { width: 110px; accent-color: var(--accent); }
+  .gsl b { font-weight: 400; min-width: 48px; white-space: nowrap; font-size: 13px; }
+  .gsl button { border: 0; width: 22px; height: 22px; border-radius: 13px; background: var(--screen-2); color: var(--ink); font-size: 12px; }
+  .gbtns { position: absolute; right: 6px; bottom: 6px; display: flex; flex-direction: column; gap: 6px; }
+  .gbtns button { width: 38px; height: 38px; border-radius: 19px; border: 1px solid var(--rule); background: var(--gpanel); color: var(--ink); font-size: 17px; padding: 0; box-shadow: 0 1px 3px rgba(0,0,0,.15); }
+  .gbtns button.on { color: var(--accent); border-color: var(--accent); }
+  .gtip { position: absolute; padding: 4px 9px; border-radius: 7px; background: var(--gpanel); border: 1px solid var(--rule); color: var(--ink); font: 13px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; white-space: nowrap; pointer-events: none; box-shadow: 0 2px 8px rgba(0,0,0,.18); }
+  .gedit { position: absolute; left: 6px; right: 52px; bottom: 6px; padding: 6px 10px; border-radius: 9px; background: var(--accent); color: #fff; font: 600 12.5px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; }
+  .gempty { position: absolute; left: 12px; right: 56px; top: 50%; transform: translateY(-50%); text-align: center; color: var(--hint); font-size: 13.5px; line-height: 1.7; pointer-events: none; }
+  .gempty i { font-family: "TNSSerif", Georgia, serif; color: var(--ink); font-style: normal; }
+  .actlist { display: flex; flex-direction: column; }
+  .actlist button { border: 0; border-bottom: 1px solid #343941; background: transparent; color: #F2F3F5; text-align: left; padding: 13px 4px; font-size: 15px; }
+  .actlist button.danger { color: #FF8A80; }
+  .actlist .colors { display: flex; gap: 10px; padding: 12px 4px; border-bottom: 1px solid #343941; flex-wrap: wrap; }
+  .actlist .colors button { width: 30px; height: 30px; border-radius: 50%; border: 2px solid #23272D; padding: 0; box-shadow: 0 0 0 1px #4A505A; }
+
   /* ---------- menú (como la tecla menu de la TI) y diálogos */
   .mhead { display: flex; align-items: center; gap: 8px; margin: 2px 0 10px; }
   .mhead h2 { flex: 1; margin: 0; font-size: 16px; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
@@ -264,12 +307,27 @@
   <div class="top">
     <div class="brand" aria-label="e a la j pi"><i>e</i><sup><i>j</i>π</sup></div>
     <span class="ver" id="verTag"></span>
+    <div class="modes" role="group" aria-label="Modo"><button data-mode="calc" aria-pressed="true">Calc</button><button data-mode="graph" aria-pressed="false">Gráf</button></div>
     <button class="chip" id="modeBtn" aria-label="Ajustes de la calculadora">—</button>
     <button class="icon-btn" id="menuBtn" aria-label="Ajustes">⚙︎</button>
   </div>
 
   <div class="screen" id="screen">
     <div class="hist" id="hist"></div>
+    <div class="gwrap" id="gwrap" hidden>
+      <canvas id="gcv"></canvas>
+      <div class="gempty" id="gempty" hidden>Escribe abajo y aprieta <b>⏎</b>:<br><i>x^2−4</i> · <i>sin(x)</i> · <i>x^2+y^2=9</i> · <i>y&lt;x</i><br><i>A=(1,2)</i> · <i>a·x+b</i> · <i>230∠30</i> · <i>r=2sin(3θ)</i><br><i>tangente(f,1)</i> · <i>integral(f,0,2)</i></div>
+      <div class="gtop"><div class="gobjs" id="gobjs"></div><div class="gsliders" id="gsliders"></div></div>
+      <div class="gbtns">
+        <button data-g="gFit" aria-label="Ajustar a lo que hay">⤢</button>
+        <button data-g="gStd" aria-label="Vista estándar">⌂</button>
+        <button data-g="gPi" id="gPiBtn" aria-label="Eje x en π">π</button>
+        <button data-g="more" aria-label="Más opciones">⋯</button>
+        <button data-g="kbd" id="gKbdBtn" aria-label="Mostrar u ocultar el teclado">⌨</button>
+      </div>
+      <div class="gtip" id="gtip" hidden></div>
+      <div class="gedit" id="gedit" hidden></div>
+    </div>
     <div class="line" id="line"><div class="line-in" id="lineIn"><canvas id="lineCv"></canvas></div></div>
     <div class="busy" id="busy" hidden><span class="spin"></span>Calculando…<button id="cancelBtn">Cancelar</button></div>
     <div class="dlg" id="dlg" hidden><div class="dlg-box"><div class="t" id="dlgT">Error</div><div class="m" id="dlgM"></div><div class="b"><button id="dlgOk">OK</button></div></div></div>
@@ -319,7 +377,7 @@
       <button id="closeSheet">Listo</button>
     </div>
     <div class="row-btns"><button id="updBtn">Buscar actualización</button></div>
-    <p class="note">Toca un cálculo del historial para elegirlo y tócalo otra vez para pegarlo en la línea (como ↑ y Enter en la TI). Mantén apretado para copiarlo. <b>↶</b> con la línea vacía deshace el último cálculo. <b>ctrl</b> queda puesto hasta la próxima tecla y da la función dorada: ctrl ⏎ = ≈, ctrl ⌫ = borrar la línea, ctrl ( = [ ], ctrl − = ans. El historial queda guardado en este teléfono.</p>
+    <p class="note">Toca un cálculo del historial para elegirlo y tócalo otra vez para pegarlo en la línea (como ↑ y Enter en la TI). Mantén apretado para copiarlo o graficarlo. En <b>Gráf</b> escribe una función y ⏎ la dibuja: un dedo mueve, dos dedos hacen zoom, tocar una curva muestra sus coordenadas y ⌨ esconde el teclado. <b>↶</b> con la línea vacía deshace el último cálculo. <b>ctrl</b> queda puesto hasta la próxima tecla y da la función dorada: ctrl ⏎ = ≈, ctrl ⌫ = borrar la línea, ctrl ( = [ ], ctrl − = ans. El historial queda guardado en este teléfono.</p>
     <p class="note" id="verNote"></p>
   </div>
 </div>
@@ -329,6 +387,14 @@
     <div class="grab"></div>
     <div class="mhead"><button id="mBack" aria-label="Volver" hidden>‹</button><h2 id="mTitle">Menú</h2><button id="mClose" aria-label="Cerrar">✕</button></div>
     <div id="mBody"></div>
+  </div>
+</div>
+
+<div class="scrim" id="actScrim" hidden>
+  <div class="sheet" role="dialog" aria-label="Opciones">
+    <div class="grab"></div>
+    <h2 id="actTitle">—</h2>
+    <div class="actlist" id="actList"></div>
   </div>
 </div>
 
@@ -397,7 +463,7 @@
     palette = {};
     for (const [hex, v] of Object.entries(PAL)) palette[hex] = cs.getPropertyValue(v).trim() || hex;
   }
-  const col = (c) => palette[String(c).toLowerCase()] || c;
+  const col = (c) => palette[String(c).toLowerCase()] || (/^#[0-9a-f]{6}$/i.test(c) && isDark() ? lighten(c, 0.38) : c);
 
   function paint(cv, d) {
     const w = Math.max(1, Math.ceil(d.w)), h = Math.max(1, Math.ceil(d.h));
@@ -452,6 +518,7 @@
       apply(JSON.parse(m.st));
       $("loading").hidden = true;
       grab();
+      if (store.get("ejpi.mode") === "graph") setMode("graph");
       return;
     }
     if (m.type === "error") {
@@ -469,6 +536,8 @@
 
   function send(a) {
     if (!ready) return;
+    if (G.on && a.t === "key" && a.k === "enter") a = { t: "gEnter" };
+    else if (G.on && a.t === "key" && a.k === "escape" && G.frame && G.frame.editing) a = { t: "gCancelEdit" };
     if (busy) { if (queue.length < 40) queue.push(a); return; }
     busy = true;
     const heavy = a.t === "key" && a.k === "enter";
@@ -496,6 +565,7 @@
     else $("dlg").hidden = true;
     if (st.estado && st.estado !== lastEstado) { lastEstado = st.estado; store.set(LS_STATE, st.estado); }
     if (st.line && st.line.text !== lastLine) { lastLine = st.line.text; store.set(LS_LINE, st.line.text); }
+    if (st.g) gApply(st.g);
   }
 
   function shortMode(m) {
@@ -522,7 +592,7 @@
       };
       const base = rowEls.length;
       add(e.in, "in", (e.txt || [])[0], base);
-      e.outs.forEach((o, j) => add(o, "out", (e.txt || [])[j + 1], base + 1 + j));
+      e.outs.forEach((o, j) => { add(o, "out", (e.txt || [])[j + 1], base + 1 + j); rowEls[base + 1 + j]._inTxt = (e.txt || [])[0]; });
       if (e.hint) add(e.hint, "hint", null, null);
       box.appendChild(div);
     });
@@ -532,6 +602,7 @@
     readPalette();
     document.querySelectorAll(".r").forEach((r) => paint(r._cv, r._d));
     if (lastSt) paintLine(lastSt.line);
+    if (G.frame) { G.sig = ""; gApply(G.frame); }
   }
   function markSel(i) {
     if (selIdx != null && rowEls[selIdx]) rowEls[selIdx].classList.remove("sel");
@@ -568,7 +639,17 @@
     const r = ev.target.closest(".r[data-flat]"); if (!r) return;
     pressed = r; moved = false; sx = ev.clientX; sy = ev.clientY;
     clearTimeout(pressTimer);
-    pressTimer = setTimeout(() => { if (pressed && !moved) { copyText(pressed._txt); pressed = null; } }, 550);
+    pressTimer = setTimeout(() => {
+      if (pressed && !moved) {
+        const r = pressed; pressed = null;
+        const k = Number(r.dataset.flat), inTxt = r._inTxt || r._txt;
+        actionSheet("Entrada", [
+          { label: "Copiar", fn: () => copyText(r._txt) },
+          { label: "Graficar", fn: () => { setMode("graph"); setTimeout(() => gSend({ t: "gPlot", s: (inTxt || "").replace(/:=/, "=") }), 0); } },
+        ]);
+        void k;
+      }
+    }, 550);
   });
   $("hist").addEventListener("pointermove", (ev) => { if (pressed && (Math.abs(ev.clientX - sx) > 8 || Math.abs(ev.clientY - sy) > 8)) moved = true; });
   $("hist").addEventListener("pointerup", () => {
@@ -921,9 +1002,471 @@
   new MutationObserver(() => repaintAll()).observe(document.documentElement, { attributes: true, attributeFilter: ["data-theme"] });
   window.addEventListener("resize", () => { if (lastSt) paintLine(lastSt.line); });
 
+  // ---------------------------------------------------------------- gráficos (mismo motor que la pestaña del PC)
+  const G = { on: false, booted: false, frame: null, view: null, w: 0, h: 0, imgs: {}, sig: "", drag: null,
+              gesture: null, lastView: 0, viewTimer: 0, anim: null, kbd: true, tapT: 0, tapXY: null };
+  const gcv = $("gcv"), gctx = gcv.getContext("2d");
+  function isDark() {
+    const t = document.documentElement.getAttribute("data-theme");
+    return t ? t === "dark" : mq.matches;
+  }
+  function lighten(hex, k) {
+    const m = /^#([0-9a-f]{6})$/i.exec(hex || ""); if (!m) return hex;
+    const n = parseInt(m[1], 16), r = n >> 16, g = (n >> 8) & 255, b = n & 255;
+    const f = (c) => Math.round(c + (255 - c) * k);
+    return "rgb(" + f(r) + "," + f(g) + "," + f(b) + ")";
+  }
+  const gc = (c) => (isDark() ? lighten(c, 0.38) : c);
+  function rgba(hex, a) {
+    const c = gc(hex), m = /^rgb\((\d+),(\d+),(\d+)\)$/.exec(c);
+    if (m) return `rgba(${m[1]},${m[2]},${m[3]},${a})`;
+    const n = parseInt(c.slice(1), 16);
+    return `rgba(${n >> 16},${(n >> 8) & 255},${n & 255},${a})`;
+  }
+  function fmtNum(v, nd = 4) {
+    if (v == null || !isFinite(v)) return "?";
+    if (Math.abs(v) < 0.5 * Math.pow(10, -nd)) v = 0;
+    let s;
+    if (Math.abs(v) >= 1e6 || (Math.abs(v) < 1e-3 && v !== 0)) s = Number(v.toPrecision(nd)).toExponential().replace(/\.?0+e/, "e");
+    else s = v.toFixed(nd).replace(/0+$/, "").replace(/\.$/, "");
+    if (s === "-0" || s === "") s = "0";
+    return s.replace("-", "−");
+  }
+  function piLabel(n, d) {
+    const gcd = (a, b) => (b ? gcd(b, a % b) : Math.abs(a));
+    const g = gcd(Math.abs(n), d) || 1; n /= g; d /= g;
+    if (n === 0) return "0";
+    const s = n < 0 ? "−" : ""; n = Math.abs(n);
+    const num = n === 1 ? "π" : n + "π";
+    return s + (d === 1 ? num : num + "/" + d);
+  }
+  function niceStep(raw) {
+    const p = Math.pow(10, Math.floor(Math.log10(raw)));
+    for (const m of [1, 2, 5, 10]) if (m * p >= raw) return [m * p, m];
+    return [10 * p, 1];
+  }
+  function gSteps(scale, usePi) {
+    if (usePi) {
+      const c = [];
+      for (const d of [12, 6, 4, 3, 2]) c.push([Math.PI / d, d]);
+      for (const m of [1, 2, 5, 10, 20, 50, 100, 200, 500, 1000]) c.push([Math.PI * m, 1 / m]);
+      for (const [st, d] of c) if (st * scale >= 70) return [st, st / ([12, 4, 2].includes(d) ? 2 : [6, 3].includes(d) ? 3 : 2), "pi"];
+      return [Math.PI * 1000, Math.PI * 500, "pi"];
+    }
+    const [st, m] = niceStep(62 / scale);
+    return [st, st / (m === 2 ? 4 : 5), "num"];
+  }
+
+  function gResize() {
+    const r = $("gwrap").getBoundingClientRect();
+    const w = Math.max(50, Math.round(r.width)), h = Math.max(50, Math.round(r.height));
+    if (w === G.w && h === G.h) return false;
+    G.w = w; G.h = h;
+    gcv.width = Math.round(w * DPR); gcv.height = Math.round(h * DPR);
+    return true;
+  }
+  function setMode(m) {
+    G.on = m === "graph";
+    document.body.classList.toggle("graph", G.on);
+    document.querySelectorAll(".modes button").forEach((b) => b.setAttribute("aria-pressed", String(b.dataset.mode === m)));
+    $("hist").hidden = G.on;
+    $("gwrap").hidden = !G.on;
+    if (!G.on) { $("pad").hidden = false; G.kbd = true; }
+    store.set("ejpi.mode", m);
+    if (!G.on || !ready) return;
+    gResize();
+    if (!G.booted) { G.booted = true; send({ t: "gBoot", state: store.get("ejpi.graph"), w: G.w, h: G.h }); }
+    else send({ t: "gRefresh", w: G.w, h: G.h });
+    gDraw();
+  }
+  document.querySelectorAll(".modes button").forEach((b) => b.addEventListener("click", () => setMode(b.dataset.mode)));
+  new ResizeObserver(() => { if (G.on && gResize()) { gDraw(); gSendView(true); } }).observe($("gwrap"));
+
+  function gApply(f) {
+    G.frame = f;
+    if (!G.gesture && !G.drag) G.view = f.view.slice(0, 4);
+    G.imgs = {};
+    for (const o of f.objs) if (o.geo && o.geo.mask) G.imgs[o.id] = gMaskImg(o);
+    const sig = JSON.stringify(f.objs.map((o) => [o.id, o.name, o.visible, o.sel, o.error, o.color, o.edit, o.slider && o.slider.text, o.row.ops.length]));
+    if (sig !== G.sig) { G.sig = sig; gChips(f); }
+    if (f.save) store.set("ejpi.graph", f.save);
+    if (f.msg) toast(f.msg);
+    $("gempty").hidden = f.objs.length > 0;
+    $("gedit").hidden = !f.editing;
+    if (f.editing) $("gedit").textContent = "Editando " + f.editing + " · ⏎ guarda · esc cancela · vacío = borrar";
+    $("gPiBtn").classList.toggle("on", f.pimode === "on");
+    $("gPiBtn").textContent = f.pimode === "off" ? "1" : "π";
+    gDraw();
+  }
+  function gMaskImg(o) {
+    const g = o.geo, bin = atob(g.mask), n = g.mw * g.mh;
+    const c = document.createElement("canvas"); c.width = g.mw; c.height = g.mh;
+    const x = c.getContext("2d"), im = x.createImageData(g.mw, g.mh);
+    const col = gc(o.color), m = /^rgb\((\d+),(\d+),(\d+)\)$/.exec(col);
+    let r, gg, b;
+    if (m) { r = +m[1]; gg = +m[2]; b = +m[3]; } else { const v = parseInt(col.slice(1), 16); r = v >> 16; gg = (v >> 8) & 255; b = v & 255; }
+    const al = (o.sel ? 95 : 70) * (isDark() ? 0.7 : 1);
+    for (let i = 0; i < n; i++) {
+      if ((bin.charCodeAt(i >> 3) >> (7 - (i & 7))) & 1) { const k = i * 4; im.data[k] = r; im.data[k + 1] = gg; im.data[k + 2] = b; im.data[k + 3] = al; }
+    }
+    x.putImageData(im, 0, 0);
+    return c;
+  }
+
+  function gDraw() {
+    if (!G.on || !G.view) return;
+    const c = gctx, w = G.w, h = G.h, cs = getComputedStyle(document.documentElement);
+    const tok = (n) => cs.getPropertyValue(n).trim();
+    c.setTransform(DPR, 0, 0, DPR, 0, 0);
+    c.fillStyle = tok("--screen"); c.fillRect(0, 0, w, h);
+    const [cx, cy, sx, sy] = G.view;
+    const X = (x) => w / 2 + (x - cx) * sx, Y = (y) => h / 2 - (y - cy) * sy;
+    const f = G.frame;
+    // cuadrícula y ejes
+    const x0 = cx - w / 2 / sx, x1 = cx + w / 2 / sx, y0 = cy - h / 2 / sy, y1 = cy + h / 2 / sy;
+    const [xst, xsub, xk] = gSteps(sx, f && f.pi), [yst, ysub] = gSteps(sy, false);
+    if (!f || f.grid) {
+      for (const [st, colr] of [[xsub, "--gminor"], [xst, "--gmajor"]]) {
+        c.strokeStyle = tok(colr); c.lineWidth = 1; c.beginPath();
+        const i0 = Math.ceil(x0 / st), i1 = Math.floor(x1 / st);
+        if (i1 - i0 < 1500) for (let i = i0; i <= i1; i++) { const p = Math.round(X(i * st)) + 0.5; c.moveTo(p, 0); c.lineTo(p, h); }
+        c.stroke();
+      }
+      for (const [st, colr] of [[ysub, "--gminor"], [yst, "--gmajor"]]) {
+        c.strokeStyle = tok(colr); c.lineWidth = 1; c.beginPath();
+        const i0 = Math.ceil(y0 / st), i1 = Math.floor(y1 / st);
+        if (i1 - i0 < 1500) for (let i = i0; i <= i1; i++) { const p = Math.round(Y(i * st)) + 0.5; c.moveTo(0, p); c.lineTo(w, p); }
+        c.stroke();
+      }
+    }
+    const ox = X(0), oy = Y(0);
+    c.strokeStyle = tok("--gaxis"); c.fillStyle = tok("--gaxis"); c.lineWidth = 1.3;
+    c.beginPath();
+    if (oy >= 0 && oy <= h) { c.moveTo(0, oy); c.lineTo(w, oy); }
+    if (ox >= 0 && ox <= w) { c.moveTo(ox, 0); c.lineTo(ox, h); }
+    c.stroke();
+    c.font = "11.5px -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif";
+    const lab = tok("--glabel"), bg = tok("--screen");
+    const txt = (t, x, y, align) => {
+      c.textAlign = align || "center"; c.textBaseline = "middle";
+      const tw = c.measureText(t).width, bx = align === "right" ? x - tw : align === "left" ? x : x - tw / 2;
+      c.fillStyle = bg; c.globalAlpha = 0.8; c.fillRect(bx - 2, y - 7, tw + 4, 14); c.globalAlpha = 1;
+      c.fillStyle = lab; c.fillText(t, x, y);
+    };
+    const axY = Math.min(Math.max(oy, 0), h), axX = Math.min(Math.max(ox, 0), w);
+    let i0 = Math.ceil(x0 / xst), i1 = Math.floor(x1 / xst);
+    if (i1 - i0 < 300) for (let i = i0; i <= i1; i++) {
+      if (i === 0) continue;
+      const v = i * xst, t = xk === "pi" ? piLabel(Math.round(v / Math.PI * 12), 12) : fmtNum(v, 6);
+      txt(t, X(v), axY + 13 < h - 4 ? axY + 13 : axY - 11);
+    }
+    i0 = Math.ceil(y0 / yst); i1 = Math.floor(y1 / yst);
+    if (i1 - i0 < 300) for (let i = i0; i <= i1; i++) {
+      if (i === 0) continue;
+      const v = i * yst, t = fmtNum(v, 6);
+      const tw = c.measureText(t).width;
+      if (axX - tw - 6 > 2) txt(t, axX - 5, Y(v), "right"); else txt(t, axX + 5, Y(v), "left");
+    }
+    if (!f) return;
+    // lo que mandó el motor está en los píxeles de su vista; se lleva a la vista actual (mover / zoom suave)
+    const [cx0, cy0, sx0, sy0] = f.view;
+    const ax = sx / sx0, ay = sy / sy0, bx = w / 2 + (cx0 - cx) * sx - (w / 2) * ax, by = h / 2 - (cy0 - cy) * sy - (h / 2) * ay;
+    const T = (px, py) => [ax * px + bx, ay * py + by];
+    const objs = f.objs.filter((o) => o.visible && !o.error && o.geo);
+    const pass = (pred, fn) => { for (const o of objs) if (pred(o)) fn(o, o.geo); };
+    pass((o) => o.geo.mask || o.geo.poly, (o, g) => {
+      if (g.mask && G.imgs[o.id]) {
+        c.imageSmoothingEnabled = false;
+        c.drawImage(G.imgs[o.id], bx, by, g.mw * g.step * ax, g.mh * g.step * ay);
+        c.imageSmoothingEnabled = true;
+      }
+      if (g.poly && g.poly.length > 4) {
+        c.fillStyle = rgba(o.color, 0.3); c.beginPath();
+        for (let i = 0; i < g.poly.length; i += 2) { const [px, py] = T(g.poly[i], g.poly[i + 1]); i ? c.lineTo(px, py) : c.moveTo(px, py); }
+        c.closePath(); c.fill();
+        const [lx, ly] = T(g.label[0], g.label[1]);
+        c.font = "600 13px -apple-system, BlinkMacSystemFont, sans-serif";
+        c.textAlign = "center"; c.textBaseline = "middle";
+        const tw = c.measureText(g.text).width;
+        c.fillStyle = bg; c.globalAlpha = 0.85; c.fillRect(lx - tw / 2 - 4, ly - 9, tw + 8, 18); c.globalAlpha = 1;
+        c.fillStyle = gc(o.color); c.fillText(g.text, lx, ly);
+      }
+    });
+    c.lineCap = "round"; c.lineJoin = "round";
+    pass((o) => !o.geo.pt, (o, g) => {
+      c.strokeStyle = gc(o.color); c.lineWidth = o.sel ? 3.4 : 2.3;
+      if (g.lines) {
+        c.beginPath();
+        for (const L of g.lines) for (let i = 0; i < L.length; i += 2) { const [px, py] = T(L[i], L[i + 1]); i ? c.lineTo(px, py) : c.moveTo(px, py); }
+        c.stroke();
+      }
+      if (g.segs) {
+        c.setLineDash(g.dash ? [6, 5] : []);
+        c.beginPath();
+        for (let i = 0; i < g.segs.length; i += 4) { const [a1, b1] = T(g.segs[i], g.segs[i + 1]), [a2, b2] = T(g.segs[i + 2], g.segs[i + 3]); c.moveTo(a1, b1); c.lineTo(a2, b2); }
+        c.stroke(); c.setLineDash([]);
+      }
+      if (g.arrow) {
+        const [xa, ya] = T(g.arrow[0], g.arrow[1]), [xb, yb] = T(g.arrow[2], g.arrow[3]);
+        const L = Math.hypot(xb - xa, yb - ya);
+        if (L > 1) {
+          const ux = (xb - xa) / L, uy = (yb - ya) / L, hl = Math.min(14, L * 0.4), qx = xb - ux * hl, qy = yb - uy * hl;
+          c.lineWidth = o.sel ? 3 : 2.4; c.beginPath(); c.moveTo(xa, ya); c.lineTo(qx, qy); c.stroke();
+          c.fillStyle = gc(o.color); c.beginPath(); c.moveTo(xb, yb); c.lineTo(qx - uy * hl * 0.45, qy + ux * hl * 0.45); c.lineTo(qx + uy * hl * 0.45, qy - ux * hl * 0.45); c.closePath(); c.fill();
+        }
+        c.font = "600 13px -apple-system, BlinkMacSystemFont, sans-serif"; c.textAlign = "left"; c.textBaseline = "alphabetic";
+        c.fillText(o.name, xb + 6, yb - 6);
+      }
+      if (g.at) { const [px, py] = T(g.at[0], g.at[1]); gDot(c, px, py, 4, gc(o.color)); }
+    });
+    pass((o) => o.geo.pt, (o, g) => {
+      let [px, py] = T(g.pt[0], g.pt[1]);
+      if (G.drag && G.drag.id === o.id && G.drag.x != null) { px = G.drag.x; py = G.drag.y; }
+      gDot(c, px, py, o.sel ? 7 : 6, gc(o.color));
+      c.font = "13px -apple-system, BlinkMacSystemFont, sans-serif"; c.fillStyle = gc(o.color); c.textAlign = "left"; c.textBaseline = "alphabetic";
+      c.fillText(o.name, px + 9, py - 9);
+    });
+    for (const s of f.special) { const [px, py] = T(s[0], s[1]); gDot(c, px, py, 4.5, tok("--glabel")); }
+    // lo tocado: punto y cartelito con las coordenadas
+    const tip = $("gtip");
+    if (f.hover && !G.gesture) {
+      const [px, py] = T(f.hover[0], f.hover[1]);
+      gDot(c, px, py, 5.5, gc(f.hover[3]));
+      tip.textContent = f.hover[2]; tip.hidden = false;
+      const tw = tip.offsetWidth, th = tip.offsetHeight;
+      tip.style.left = Math.max(4, Math.min(w - tw - 4, px + 10 + tw > w ? px - tw - 10 : px + 10)) + "px";
+      tip.style.top = Math.max(4, py - th - 10 > 40 ? py - th - 10 : py + 12) + "px";
+    } else tip.hidden = true;
+  }
+  function gDot(c, x, y, r, fill) {
+    c.beginPath(); c.arc(x, y, r, 0, 2 * Math.PI);
+    c.fillStyle = fill; c.fill(); c.lineWidth = 1.5; c.strokeStyle = "#FFFFFF"; c.stroke();
+  }
+
+  // lista de objetos (arriba del gráfico) y deslizadores
+  let chipPress = 0;
+  function gChips(f) {
+    const box = $("gobjs"), sl = $("gsliders");
+    box.textContent = ""; sl.textContent = "";
+    for (const o of f.objs) {
+      if (o.kind === "slider") {
+        const s = o.slider, d = document.createElement("div"); d.className = "gsl";
+        d.innerHTML = `<b>${esc(o.name)} = ${esc(s.text)}</b><input type="range" min="${s.min}" max="${s.max}" step="${s.step}" value="${s.value}" aria-label="${esc(o.name)}"><button aria-label="Animar">${G.anim && G.anim.id === o.id ? "■" : "▶"}</button>`;
+        const r = d.querySelector("input"), lbl = d.querySelector("b");
+        r.addEventListener("input", () => { lbl.textContent = o.name + " = " + fmtNum(+r.value); gSend({ t: "gSlider", id: o.id, value: +r.value }); });
+        d.querySelector("button").onclick = () => gAnimate(o, r);
+        d.addEventListener("contextmenu", (e) => e.preventDefault());
+        let lp = 0;
+        d.querySelector("b").addEventListener("pointerdown", () => { lp = setTimeout(() => gObjMenu(o), 550); });
+        d.querySelector("b").addEventListener("pointerup", () => clearTimeout(lp));
+        sl.appendChild(d);
+        continue;
+      }
+      const chip = document.createElement("div");
+      chip.className = "gchip" + (o.sel ? " sel" : "") + (o.error ? " err" : "") + (o.visible ? "" : " hid");
+      const dot = document.createElement("button"); dot.className = "dot"; dot.setAttribute("aria-label", o.visible ? "Ocultar" : "Mostrar");
+      const ci = document.createElement("i"); ci.style.borderColor = gc(o.error ? "#B3261E" : o.color); ci.style.background = o.visible ? gc(o.error ? "#B3261E" : o.color) : "transparent";
+      dot.appendChild(ci);
+      dot.onclick = (e) => { e.stopPropagation(); gSend({ t: "gToggle", id: o.id }); };
+      const cv = document.createElement("canvas");
+      chip.append(dot, cv);
+      paint(cv, o.row);
+      chip.addEventListener("pointerdown", () => { clearTimeout(chipPress); chipPress = setTimeout(() => { chipPress = -1; gObjMenu(o); }, 550); });
+      chip.addEventListener("pointerup", () => { if (chipPress !== -1) { clearTimeout(chipPress); gSend({ t: "gSel", id: o.id }); } chipPress = 0; });
+      chip.addEventListener("pointercancel", () => clearTimeout(chipPress));
+      chip.addEventListener("contextmenu", (e) => e.preventDefault());
+      box.appendChild(chip);
+    }
+  }
+  const GCOLORS = ["#1565C0", "#C62828", "#2E7D32", "#6A1B9A", "#EF6C00", "#00838F", "#AD1457", "#5D4037", "#283593", "#558B2F"];
+  function gObjMenu(o) {
+    const items = [
+      { label: "Editar", fn: () => { gSend({ t: "gEdit", id: o.id }); if (!G.kbd) gToggleKbd(); } },
+      o.kind !== "slider" ? { label: o.visible ? "Ocultar" : "Mostrar", fn: () => gSend({ t: "gToggle", id: o.id }) } : null,
+      o.kind !== "slider" ? { colors: true } : { label: "Rango del deslizador…", fn: () => gSliderRange(o) },
+      { label: "Borrar", danger: true, fn: () => gSend({ t: "gDel", id: o.id }) },
+    ].filter(Boolean);
+    actionSheet(o.name || "Objeto", items, o);
+  }
+  function gSliderRange(o) {
+    let gmin, gmax;
+    openForm("Rango de " + o.name, (body) => {
+      for (const [k, lab] of [["min", "Mínimo"], ["max", "Máximo"], ["step", "Paso"]]) {
+        const l = document.createElement("label");
+        l.innerHTML = `<span>${lab}</span><input type="text" inputmode="decimal" value="${o.slider[k]}">`;
+        l.querySelector("input").dataset.k = k;
+        body.appendChild(l);
+      }
+    }, () => {
+      const m = { t: "gSliderRange", id: o.id };
+      $("fBody").querySelectorAll("input").forEach((i) => { const v = parseFloat(i.value.replace(",", ".").replace("−", "-")); if (isFinite(v)) m[i.dataset.k] = v; });
+      gSend(m);
+    });
+    void gmin; void gmax;
+  }
+  function gAnimate(o, r) {
+    if (G.anim && G.anim.id === o.id) { G.anim = null; G.sig = ""; gChips(G.frame); return; }
+    G.anim = { id: o.id, v: +r.value, dir: 1, min: +r.min, max: +r.max, step: Math.max(+r.step, (+r.max - +r.min) / 100) };
+    G.sig = ""; gChips(G.frame);
+    const tick = () => {
+      const a = G.anim; if (!a || a.id !== o.id || !G.on) return;
+      if (!busy) {
+        a.v += a.dir * a.step;
+        if (a.v >= a.max) { a.v = a.max; a.dir = -1; } else if (a.v <= a.min) { a.v = a.min; a.dir = 1; }
+        gSend({ t: "gSlider", id: o.id, value: Math.round(a.v * 1e6) / 1e6 });
+      }
+      setTimeout(tick, 60);
+    };
+    tick();
+  }
+  function actionSheet(title, items, o) {
+    $("actTitle").textContent = title;
+    const box = $("actList"); box.textContent = "";
+    for (const it of items) {
+      if (it.colors) {
+        const row = document.createElement("div"); row.className = "colors";
+        for (const cl of GCOLORS) {
+          const b = document.createElement("button"); b.style.background = cl; b.setAttribute("aria-label", "Color " + cl);
+          b.onclick = () => { $("actScrim").hidden = true; gSend({ t: "gColor", id: o.id, color: cl }); };
+          row.appendChild(b);
+        }
+        box.appendChild(row);
+        continue;
+      }
+      const b = document.createElement("button"); b.textContent = it.label; if (it.danger) b.className = "danger";
+      b.onclick = () => { $("actScrim").hidden = true; it.fn(); };
+      box.appendChild(b);
+    }
+    $("actScrim").hidden = false;
+  }
+  $("actScrim").addEventListener("click", (ev) => { if (ev.target === $("actScrim")) $("actScrim").hidden = true; });
+
+  // mandar al motor: las vistas y deslizadores repetidos se juntan (solo vale el último)
+  function gSend(a) {
+    if (busy && (a.t === "gView" || a.t === "gSlider")) {
+      const i = queue.findIndex((q) => q.t === a.t && (a.t === "gView" || q.id === a.id));
+      if (i >= 0) { queue[i] = a; return; }
+    }
+    send(a);
+  }
+  function gSendView(force) {
+    if (!G.view) return;
+    const now = performance.now();
+    clearTimeout(G.viewTimer);
+    const go = () => { G.lastView = performance.now(); gSend({ t: "gView", w: G.w, h: G.h, cx: G.view[0], cy: G.view[1], sx: G.view[2], sy: G.view[3] }); };
+    if (force || now - G.lastView > 140) go(); else G.viewTimer = setTimeout(go, 140 - (now - G.lastView));
+  }
+  let gRAF = 0;
+  const gRedraw = () => { if (!gRAF) gRAF = requestAnimationFrame(() => { gRAF = 0; gDraw(); }); };
+
+  // dedos: uno = mover (o arrastrar un punto), dos = zoom, toque = ver coordenadas, doble toque = acercar
+  const ptrs = new Map();
+  function gLocal(ev) { const r = gcv.getBoundingClientRect(); return { x: ev.clientX - r.left, y: ev.clientY - r.top }; }
+  gcv.addEventListener("pointerdown", (ev) => {
+    if (!G.view) return;
+    gcv.setPointerCapture(ev.pointerId);
+    const p = gLocal(ev); ptrs.set(ev.pointerId, p);
+    if (ptrs.size === 1) {
+      G.gesture = { kind: "pan", p0: p, v0: G.view.slice(), t0: performance.now(), moved: false };
+      // ¿un punto que se puede arrastrar?
+      const f = G.frame;
+      if (f) {
+        const [cx0, cy0, sx0, sy0] = f.view, [cx, cy, sx, sy] = G.view;
+        const ax = sx / sx0, ay = sy / sy0, bx = G.w / 2 + (cx0 - cx) * sx - (G.w / 2) * ax, by = G.h / 2 - (cy0 - cy) * sy - (G.h / 2) * ay;
+        for (const o of f.objs) {
+          const g = o.geo; if (!g || !g.pt || !g.drag || !o.visible) continue;
+          const px = ax * g.pt[0] + bx, py = ay * g.pt[1] + by;
+          if (Math.hypot(px - p.x, py - p.y) < 18) { G.drag = { id: o.id, x: null, y: null }; G.gesture = null; break; }
+        }
+      }
+    } else if (ptrs.size === 2) {
+      const [a, b] = [...ptrs.values()];
+      G.drag = null;
+      G.gesture = { kind: "pinch", d0: Math.hypot(a.x - b.x, a.y - b.y), m0: { x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 }, v0: G.view.slice(), moved: true };
+    }
+  });
+  gcv.addEventListener("pointermove", (ev) => {
+    if (!ptrs.has(ev.pointerId)) return;
+    const p = gLocal(ev); ptrs.set(ev.pointerId, p);
+    if (G.drag) { G.drag.x = p.x; G.drag.y = p.y; gRedraw(); return; }
+    const g = G.gesture; if (!g) return;
+    if (g.kind === "pan" && ptrs.size === 1) {
+      const dx = p.x - g.p0.x, dy = p.y - g.p0.y;
+      if (!g.moved && Math.hypot(dx, dy) < 6) return;
+      g.moved = true;
+      G.view = [g.v0[0] - dx / g.v0[2], g.v0[1] + dy / g.v0[3], g.v0[2], g.v0[3]];
+    } else if (g.kind === "pinch" && ptrs.size === 2) {
+      const [a, b] = [...ptrs.values()];
+      const d = Math.hypot(a.x - b.x, a.y - b.y), m = { x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 };
+      const k = Math.max(0.02, d / Math.max(1, g.d0));
+      const sx = Math.min(1e9, Math.max(1e-6, g.v0[2] * k)), sy = Math.min(1e9, Math.max(1e-6, g.v0[3] * k));
+      const wx = g.v0[0] + (g.m0.x - G.w / 2) / g.v0[2], wy = g.v0[1] - (g.m0.y - G.h / 2) / g.v0[3];
+      G.view = [wx - (m.x - G.w / 2) / sx, wy + (m.y - G.h / 2) / sy, sx, sy];
+    }
+    gRedraw(); gSendView(false);
+  });
+  const gEnd = (ev) => {
+    if (!ptrs.has(ev.pointerId)) return;
+    const p = gLocal(ev);
+    ptrs.delete(ev.pointerId);
+    if (G.drag) {
+      const d = G.drag; G.drag = null;
+      if (d.x != null) { gSendView(true); gSend({ t: "gPoint", id: d.id, x: d.x, y: d.y }); }
+      else gSend({ t: "gHit", x: p.x, y: p.y });
+      return;
+    }
+    const g = G.gesture;
+    if (ptrs.size === 1 && g && g.kind === "pinch") {          // queda un dedo: sigue moviendo desde ahí
+      const q = [...ptrs.values()][0];
+      G.gesture = { kind: "pan", p0: q, v0: G.view.slice(), t0: performance.now(), moved: true };
+      return;
+    }
+    if (ptrs.size) return;
+    G.gesture = null;
+    if (g && !g.moved && performance.now() - g.t0 < 400) {
+      const now = performance.now();
+      if (G.tapXY && now - G.tapT < 320 && Math.hypot(G.tapXY.x - p.x, G.tapXY.y - p.y) < 30) {
+        G.tapT = 0; gZoomAt(2, p); return;                     // doble toque: acercar
+      }
+      G.tapT = now; G.tapXY = p;
+      gSend({ t: "gHit", x: p.x, y: p.y });
+      return;
+    }
+    gSendView(true);
+  };
+  gcv.addEventListener("pointerup", gEnd);
+  gcv.addEventListener("pointercancel", gEnd);
+  function gZoomAt(k, p) {
+    const [cx, cy, sx, sy] = G.view, wx = cx + (p.x - G.w / 2) / sx, wy = cy - (p.y - G.h / 2) / sy;
+    const nsx = Math.min(1e9, Math.max(1e-6, sx * k)), nsy = Math.min(1e9, Math.max(1e-6, sy * k));
+    G.view = [wx - (p.x - G.w / 2) / nsx, wy + (p.y - G.h / 2) / nsy, nsx, nsy];
+    gRedraw(); gSendView(false);
+  }
+  gcv.addEventListener("wheel", (ev) => { ev.preventDefault(); gZoomAt(Math.pow(1.15, -ev.deltaY / 100), gLocal(ev)); }, { passive: false });
+
+  function gToggleKbd() {
+    G.kbd = !G.kbd;
+    $("pad").hidden = !G.kbd;
+    $("gKbdBtn").classList.toggle("on", !G.kbd);
+  }
+  document.querySelector(".gbtns").addEventListener("click", (ev) => {
+    const b = ev.target.closest("button"); if (!b) return;
+    const a = b.dataset.g;
+    if (a === "kbd") return gToggleKbd();
+    if (a === "more") {
+      return actionSheet("Gráfico", [
+        { label: G.frame && G.frame.grid ? "Ocultar cuadrícula" : "Mostrar cuadrícula", fn: () => gSend({ t: "gGrid" }) },
+        { label: "Eje x: " + ({ auto: "automático (π con trigonometría)", on: "siempre en π", off: "siempre en números" })[(G.frame && G.frame.pimode) || "auto"] + " · cambiar", fn: () => gSend({ t: "gPi" }) },
+        { label: "Borrar todo", danger: true, fn: () => actionSheet("¿Borrar todos los objetos del gráfico?", [{ label: "Sí, borrar todo", danger: true, fn: () => gSend({ t: "gClear" }) }, { label: "Cancelar", fn: () => {} }]) },
+      ]);
+    }
+    if (a === "gFit" || a === "gStd") { gSend({ t: a }); return; }
+    if (a === "gPi") gSend({ t: "gPi" });
+  });
+
   // ---------------------------------------------------------------- versión instalable (GitHub Pages)
-  // versión: va a la par con TNS Estudio (1.1 beta = la beta del PC del 26-10-2026)
-  const APP_VERSION = "1.1 beta";
+  // versión: partió a la par con TNS Estudio (1.1 beta = la beta del PC del 26-10-2026); 1.2 = gráficos
+  const APP_VERSION = "1.2 beta";
   $("verTag").textContent = "v" + APP_VERSION;
   $("loadVer").textContent = "v" + APP_VERSION;
   $("verNote").textContent = "e^jπ · versión " + APP_VERSION + " · mismo núcleo que TNS Estudio (Python + SymPy en el teléfono).";
