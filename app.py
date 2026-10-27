@@ -368,6 +368,20 @@ def _gobj(i):
     return None
 
 
+def _fit_if_out(o):
+    """Un fasor (o punto) que queda fuera de la pantalla: se ajusta la vista para que se vea."""
+    from tnsestudio.graph import geom
+    vp = _G.vp
+    if o.error or o.kind not in ("phasor", "point"):
+        return
+    x, y = o.data["z"] if o.kind == "phasor" else o.data["xy"]
+    x0, x1, y0, y1 = vp.bounds()
+    if not (x0 <= x <= x1 and y0 <= y <= y1):
+        r = geom.fit(vp)
+        if r is not None:
+            vp.cx, vp.cy, vp.sx, vp.sy = r
+
+
 def gaction(m):
     """Acciones del gráfico; devuelve True si hay que mandar el dibujo de nuevo."""
     import re
@@ -402,6 +416,7 @@ def gaction(m):
         if o.error and not o.error.startswith("¿"):
             _G.msg = o.error
         vp.selected = o if o.kind != "slider" and not o.error else None
+        _fit_if_out(o)
     elif t == "gEdit":
         o = _gobj(m["id"])
         if o is not None:
@@ -491,6 +506,7 @@ def gaction(m):
         if o.error and not o.error.startswith("¿"):
             _G.msg = o.error
         vp.selected = o if o.kind != "slider" and not o.error else None
+        _fit_if_out(o)
     return True
 
 def action(msg_json):
