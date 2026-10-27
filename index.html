@@ -240,6 +240,27 @@
   .actlist .colors { display: flex; gap: 10px; padding: 12px 4px; border-bottom: 1px solid #343941; flex-wrap: wrap; }
   .actlist .colors button { width: 30px; height: 30px; border-radius: 50%; border: 2px solid #23272D; padding: 0; box-shadow: 0 0 0 1px #4A505A; }
 
+  .bode { position: absolute; inset: 0; background: var(--screen); display: flex; flex-direction: column; z-index: 3; }
+  .bhead { display: flex; align-items: center; gap: 8px; padding: 6px 8px 2px 10px; color: var(--ink); font-size: 13px; }
+  .bhead .bh { flex: 1; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .bhead b { font: 400 15px "TNSSerif", Georgia, serif; }
+  .bhead button { border: 0; width: 30px; height: 30px; border-radius: 15px; background: var(--screen-2); color: var(--ink); font-size: 14px; }
+  .btabs { display: flex; gap: 4px; padding: 2px 8px 4px; }
+  .btabs button { border: 1px solid var(--rule); background: var(--screen-2); color: var(--ink); height: 26px; padding: 0 10px; border-radius: 13px; font: 600 12px -apple-system, BlinkMacSystemFont, sans-serif; }
+  .btabs button[aria-pressed="true"] { background: var(--accent); border-color: var(--accent); color: #fff; }
+  .btabs button[data-bt="hz"] { margin-left: auto; }
+  #bcv { flex: 1; min-height: 0; width: 100%; display: block; touch-action: none; }
+  .binfo { max-height: 30%; overflow-y: auto; padding: 4px 10px 8px; color: var(--ink); font-size: 12.5px; line-height: 1.45; border-top: 1px solid var(--rule); }
+  .binfo div { padding: 1px 0; }
+  .tblform { display: grid; grid-template-columns: 1fr 1fr; gap: 8px 12px; margin-bottom: 10px; }
+  .tblform label { display: flex; flex-direction: column; gap: 3px; font-size: 12.5px; color: #AEB4BF; }
+  .tblform select, .tblform input { height: 34px; border-radius: 8px; border: 1px solid #3B4048; background: #1B1E23; color: #F2F3F5; padding: 0 8px; font-size: 16px; }
+  .tblwrap { max-height: 50dvh; overflow-y: auto; border-radius: 10px; border: 1px solid #343941; }
+  #tbl { width: 100%; border-collapse: collapse; font: 15px "TNSSerif", Georgia, serif; color: #F2F3F5; font-variant-numeric: tabular-nums; }
+  #tbl th { position: sticky; top: 0; background: #2C3138; font: 600 13px -apple-system, BlinkMacSystemFont, sans-serif; padding: 7px; }
+  #tbl td { text-align: center; padding: 5px 7px; border-top: 1px solid #343941; }
+  #tbl tr:nth-child(even) td { background: rgba(255,255,255,.03); }
+
   /* ---------- menú (como la tecla menu de la TI) y diálogos */
   .mhead { display: flex; align-items: center; gap: 8px; margin: 2px 0 10px; }
   .mhead h2 { flex: 1; margin: 0; font-size: 16px; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
@@ -326,6 +347,12 @@
         <button data-g="kbd" id="gKbdBtn" aria-label="Mostrar u ocultar el teclado">⌨</button>
       </div>
       <div class="gtip" id="gtip" hidden></div>
+      <div class="bode" id="bode" hidden>
+        <div class="bhead"><span class="bh">H(s) = <b id="bodeH"></b></span><button id="bodeClose" aria-label="Cerrar Bode">✕</button></div>
+        <div class="btabs" role="group"><button data-bt="bode" aria-pressed="true">Bode</button><button data-bt="step" aria-pressed="false">Escalón</button><button data-bt="pz" aria-pressed="false">Polos y ceros</button><button data-bt="hz" id="bodeHz" aria-pressed="false">Hz</button></div>
+        <canvas id="bcv"></canvas>
+        <div class="binfo" id="bodeInfo"></div>
+      </div>
       <div class="gedit" id="gedit" hidden></div>
     </div>
     <div class="line" id="line"><div class="line-in" id="lineIn"><canvas id="lineCv"></canvas></div></div>
@@ -395,6 +422,20 @@
     <div class="grab"></div>
     <h2 id="actTitle">—</h2>
     <div class="actlist" id="actList"></div>
+  </div>
+</div>
+
+<div class="scrim" id="tblScrim" hidden>
+  <div class="sheet" role="dialog" aria-label="Tabla de valores">
+    <div class="grab"></div>
+    <div class="mhead"><h2>Tabla de valores</h2><button id="tblClose" aria-label="Cerrar">✕</button></div>
+    <div class="tblform">
+      <label>Función <select id="tblFn"></select></label>
+      <label>Desde x = <input id="tblX0" type="text" inputmode="decimal" value="-5"></label>
+      <label>Paso <input id="tblSt" type="text" inputmode="decimal" value="1"></label>
+      <label>Filas <input id="tblN" type="text" inputmode="numeric" value="21"></label>
+    </div>
+    <div class="tblwrap"><table id="tbl"></table></div>
   </div>
 </div>
 
@@ -537,6 +578,8 @@
   function send(a) {
     if (!ready) return;
     if (G.on && a.t === "key" && a.k === "enter") a = { t: "gEnter" };
+    else if (G.on && a.t === "key" && a.k === "escape" && G.pick) { endPick(); a = { t: "gPick", mode: "cancel" }; }
+    else if (G.on && a.t === "key" && a.k === "escape" && !$("bode").hidden) { closeBode(); return; }
     else if (G.on && a.t === "key" && a.k === "escape" && G.frame && G.frame.editing) a = { t: "gCancelEdit" };
     if (busy) { if (queue.length < 40) queue.push(a); return; }
     busy = true;
@@ -931,13 +974,15 @@
   const kbd = $("kbd");
   const DESK = window.matchMedia && window.matchMedia("(hover: hover) and (pointer: fine)").matches;
   function grab() {
-    if (!DESK || !$("scrim").hidden || !$("menuScrim").hidden || !$("formScrim").hidden) return;
+    if (!DESK || !$("scrim").hidden || !$("menuScrim").hidden || !$("formScrim").hidden || !$("tblScrim").hidden || !$("actScrim").hidden) return;
+    const ae = document.activeElement;
+    if (ae && ae !== kbd && /^(INPUT|SELECT|TEXTAREA)$/.test(ae.tagName)) return;
     if (document.activeElement !== kbd) { try { kbd.focus({ preventScroll: true }); } catch (e) { kbd.focus(); } }
   }
   if (DESK) {
     document.addEventListener("pointerup", () => setTimeout(grab, 0));
     window.addEventListener("focus", grab);
-    for (const id of ["scrim", "menuScrim", "formScrim"])
+    for (const id of ["scrim", "menuScrim", "formScrim", "tblScrim", "actScrim"])
       new MutationObserver(() => setTimeout(grab, 0)).observe($(id), { attributes: true, attributeFilter: ["hidden"] });
   }
   kbd.addEventListener("input", () => {
@@ -946,7 +991,7 @@
   });
   window.addEventListener("keydown", (ev) => {
     if (DESK && document.activeElement !== kbd && ev.target === document.body) grab();   // Vimium le quitó el foco al cargar
-    if (!$("scrim").hidden || !$("menuScrim").hidden || !$("formScrim").hidden) return;
+    if (!$("scrim").hidden || !$("menuScrim").hidden || !$("formScrim").hidden || !$("tblScrim").hidden || !$("actScrim").hidden) return;
     if (ev.target && ev.target !== kbd && /^(INPUT|SELECT|TEXTAREA)$/.test(ev.target.tagName)) return;
     const k = PHYS[ev.key];
     if (k) {
@@ -1092,8 +1137,12 @@
     if (f.save) store.set("ejpi.graph", f.save);
     if (f.msg) toast(f.msg);
     $("gempty").hidden = f.objs.length > 0;
-    $("gedit").hidden = !f.editing;
+    $("gedit").hidden = !f.editing && !G.pick;
     if (f.editing) $("gedit").textContent = "Editando " + f.editing + " · ⏎ guarda · esc cancela · vacío = borrar";
+    if (f.bode) { if (f.bode.error) toast("Bode: " + f.bode.error); else showBode(f.bode); }
+    if (f.table) fillTable(f.table);
+    if (f.pickdone) endPick();
+    else if (G.pick) { $("gedit").hidden = false; }
     $("gPiBtn").classList.toggle("on", f.pimode === "on");
     $("gPiBtn").textContent = f.pimode === "off" ? "1" : "π";
     gDraw();
@@ -1429,6 +1478,7 @@
         G.tapT = 0; gZoomAt(2, p); return;                     // doble toque: acercar
       }
       G.tapT = now; G.tapXY = p;
+      if (G.pick) { G.tapT = 0; gSend({ t: "gPick", mode: G.pick, x: p.x, y: p.y }); return; }
       gSend({ t: "gHit", x: p.x, y: p.y });
       return;
     }
@@ -1455,6 +1505,10 @@
     if (a === "kbd") return gToggleKbd();
     if (a === "more") {
       return actionSheet("Gráfico", [
+        { label: "Tabla de valores", fn: openTable },
+        { label: "Tangente tocando la curva", fn: () => startPick("tangent") },
+        { label: "Área tocando dos curvas (o una y el eje x)", fn: () => startPick("area") },
+        { label: "Bode, escalón y polos de H(s)…", fn: () => { send({ t: "menu", s: "bode(|)" }); toast("Escribe H(s) en función de s y aprieta ⏎"); if (!G.kbd) gToggleKbd(); } },
         { label: G.frame && G.frame.grid ? "Ocultar cuadrícula" : "Mostrar cuadrícula", fn: () => gSend({ t: "gGrid" }) },
         { label: "Eje x: " + ({ auto: "automático (π con trigonometría)", on: "siempre en π", off: "siempre en números" })[(G.frame && G.frame.pimode) || "auto"] + " · cambiar", fn: () => gSend({ t: "gPi" }) },
         { label: "Borrar todo", danger: true, fn: () => actionSheet("¿Borrar todos los objetos del gráfico?", [{ label: "Sí, borrar todo", danger: true, fn: () => gSend({ t: "gClear" }) }, { label: "Cancelar", fn: () => {} }]) },
@@ -1464,9 +1518,193 @@
     if (a === "gPi") gSend({ t: "gPi" });
   });
 
+  // ---------------------------------------------------------------- Bode, escalón y polos/ceros (bode(H(s)) en Gráf)
+  const BD = { data: null, tab: "bode", hz: false, cur: null };
+  const bcv = $("bcv"), bctx = bcv.getContext("2d");
+  function showBode(b) {
+    BD.data = b; BD.cur = null;
+    $("bodeH").textContent = b.text;
+    const inf = $("bodeInfo"); inf.textContent = "";
+    for (const t of [...b.info, b.step && (b.step.info || b.step.error)].filter(Boolean)) { const d = document.createElement("div"); d.textContent = t; inf.appendChild(d); }
+    $("bode").hidden = false;
+    if (G.kbd) { gToggleKbd(); BD.hidKbd = true; }
+    requestAnimationFrame(bDraw);
+  }
+  function closeBode() { $("bode").hidden = true; BD.data = null; if (BD.hidKbd && !G.kbd) gToggleKbd(); BD.hidKbd = false; }
+  $("bodeClose").onclick = closeBode;
+  document.querySelectorAll(".btabs button").forEach((b) => b.addEventListener("click", () => {
+    if (b.dataset.bt === "hz") { BD.hz = !BD.hz; b.setAttribute("aria-pressed", String(BD.hz)); }
+    else { BD.tab = b.dataset.bt; document.querySelectorAll(".btabs button[data-bt]:not([data-bt=hz])").forEach((x) => x.setAttribute("aria-pressed", String(x === b))); }
+    BD.cur = null; bDraw();
+  }));
+  new ResizeObserver(() => { if (BD.data) bDraw(); }).observe(bcv);
+  const fmtW = (v) => { const a = Math.abs(v); return a >= 1e3 ? fmtNum(v / 1e3, 3) + "k" : a >= 1e6 ? fmtNum(v / 1e6, 3) + "M" : fmtNum(v, 3); };
+  function bAxes(c, x, y, w, h, tok) {
+    c.strokeStyle = tok("--gmajor"); c.lineWidth = 1; c.strokeRect(x + 0.5, y + 0.5, w, h);
+  }
+  function bDraw() {
+    const b = BD.data; if (!b) return;
+    const r = bcv.getBoundingClientRect(), W = Math.max(50, r.width), H = Math.max(50, r.height);
+    bcv.width = Math.round(W * DPR); bcv.height = Math.round(H * DPR);
+    const c = bctx, cs = getComputedStyle(document.documentElement), tok = (n) => cs.getPropertyValue(n).trim();
+    c.setTransform(DPR, 0, 0, DPR, 0, 0);
+    c.fillStyle = tok("--screen"); c.fillRect(0, 0, W, H);
+    c.font = "10.5px -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif";
+    const L = 42, Rm = 10, ink = tok("--ink"), lab = tok("--glabel");
+    const blue = gc("#1565C0"), red = gc("#C62828"), green = gc("#2E7D32");
+    const txt = (t, x, y, al, col) => { c.fillStyle = col || lab; c.textAlign = al || "center"; c.textBaseline = "middle"; c.fillText(t, x, y); };
+    if (BD.tab === "bode") {
+      const k = BD.hz ? 1 / (2 * Math.PI) : 1, ws = b.w.map((v) => v * k);
+      const lx0 = Math.log10(ws[0]), lx1 = Math.log10(ws[ws.length - 1]);
+      const pw = W - L - Rm, X = (v) => L + (Math.log10(v) - lx0) / (lx1 - lx0) * pw;
+      const gap = 22, ph = (H - 14 - gap - 16) / 2, top1 = 8, top2 = top1 + ph + gap;
+      const panel = (vals, top, col, unit, stepPick) => {
+        const fin = vals.filter((v) => v != null && isFinite(v));
+        let lo = Math.min(...fin), hi = Math.max(...fin);
+        if (!isFinite(lo)) { lo = -1; hi = 1; }
+        if (hi - lo < 1e-9) { lo -= 1; hi += 1; }
+        let st = stepPick(hi - lo);
+        for (const cand of [5, 10, 15, 20, 30, 40, 45, 60, 90, 120, 180, 360]) { if (cand >= st && ph * cand / Math.max(1e-9, hi - lo) >= 16) { st = cand; break; } }
+        lo = Math.floor(lo / st) * st; hi = Math.ceil(hi / st) * st;
+        const Y = (v) => top + (hi - v) / (hi - lo) * ph;
+        c.strokeStyle = tok("--gminor"); c.lineWidth = 1; c.beginPath();
+        for (let d = Math.floor(lx0); d <= Math.ceil(lx1); d++) for (let m = 1; m < 10; m++) {
+          const v = m * Math.pow(10, d); if (Math.log10(v) < lx0 || Math.log10(v) > lx1) continue;
+          const px = Math.round(X(v)) + 0.5; c.moveTo(px, top); c.lineTo(px, top + ph);
+        }
+        c.stroke();
+        c.strokeStyle = tok("--gmajor"); c.beginPath();
+        for (let v = lo; v <= hi + 1e-9; v += st) { const py = Math.round(Y(v)) + 0.5; c.moveTo(L, py); c.lineTo(L + pw, py); }
+        for (let d = Math.ceil(lx0); d <= Math.floor(lx1); d++) { const px = Math.round(X(Math.pow(10, d))) + 0.5; c.moveTo(px, top); c.lineTo(px, top + ph); }
+        c.stroke();
+        for (let v = lo; v <= hi + 1e-9; v += st) txt(fmtNum(v, 2), L - 4, Y(v), "right");
+        txt(unit, 4, top + 6, "left");
+        c.strokeStyle = col; c.lineWidth = 2.2; c.lineJoin = "round"; c.beginPath();
+        let pen = false;
+        for (let i = 0; i < ws.length; i++) { const v = vals[i]; if (v == null || !isFinite(v)) { pen = false; continue; } const px = X(ws[i]), py = Y(v); pen ? c.lineTo(px, py) : c.moveTo(px, py); pen = true; }
+        c.stroke();
+        bAxes(c, L, top, pw, ph, tok);
+        return Y;
+      };
+      const Ym = panel(b.mag, top1, blue, "dB", (span) => (span > 160 ? 40 : span > 60 ? 20 : span > 24 ? 10 : 5));
+      const Yp = panel(b.ph, top2, red, "°", (span) => (span > 360 ? 90 : span > 120 ? 45 : 15));
+      for (let d = Math.ceil(lx0); d <= Math.floor(lx1); d++) txt(fmtW(Math.pow(10, d)), X(Math.pow(10, d)), top2 + ph + 9);
+      txt(BD.hz ? "f (Hz)" : "ω (rad/s)", W - Rm, top1 + ph + gap / 2, "right");
+      c.setLineDash([4, 4]); c.lineWidth = 1.4;
+      if (b.gc) { const px = X(b.gc[0] * k); c.strokeStyle = green; c.beginPath(); c.moveTo(px, Ym(0)); c.lineTo(px, top2 + ph); c.stroke(); gDot(c, px, Ym(0), 4, green); gDot(c, px, Yp(b.gc[1] - 180), 4, green); }
+      if (b.pc) { const px = X(b.pc[0] * k); c.strokeStyle = tok("--glabel"); c.beginPath(); c.moveTo(px, top1); c.lineTo(px, Yp(-180)); c.stroke(); gDot(c, px, Yp(-180), 4, tok("--glabel")); }
+      c.setLineDash([]);
+      if (BD.cur != null) {
+        const xs = BD.cur; let best = 0, bd = 1e9;
+        for (let i = 0; i < ws.length; i++) { const d = Math.abs(X(ws[i]) - xs); if (d < bd) { bd = d; best = i; } }
+        const px = X(ws[best]);
+        c.strokeStyle = ink; c.lineWidth = 1; c.beginPath(); c.moveTo(px, top1); c.lineTo(px, top2 + ph); c.stroke();
+        if (b.mag[best] != null) gDot(c, px, Ym(b.mag[best]), 4.5, blue);
+        if (b.ph[best] != null) gDot(c, px, Yp(b.ph[best]), 4.5, red);
+        bTip((BD.hz ? "f = " : "ω = ") + fmtNum(ws[best], 4) + "   |H| = " + fmtNum(b.mag[best], 4) + " dB   ∠ " + fmtNum(b.ph[best], 4) + "°", W, top1 + ph + gap / 2, c, tok);
+      }
+      return;
+    }
+    if (BD.tab === "step") {
+      const s = b.step;
+      if (!s || s.error || !s.t) { txt(s && s.error ? s.error : "Sin respuesta al escalón", W / 2, H / 2, "center", ink); return; }
+      const T = s.t, Yv = s.y.map((v) => (v == null ? NaN : v));
+      const fin = Yv.filter(isFinite); let lo = Math.min(0, ...fin), hi = Math.max(...fin, s.final || 0);
+      if (hi - lo < 1e-9) hi = lo + 1;
+      const pad = (hi - lo) * 0.08; lo -= pad; hi += pad;
+      const pw = W - L - Rm, phh = H - 30, top = 8;
+      const X = (t) => L + t / T[T.length - 1] * pw, Y = (v) => top + (hi - v) / (hi - lo) * phh;
+      const [xs] = gSteps(pw / T[T.length - 1], false), [ys] = gSteps(phh / (hi - lo), false);
+      c.strokeStyle = tok("--gmajor"); c.lineWidth = 1; c.beginPath();
+      for (let t = 0; t <= T[T.length - 1] + 1e-9; t += xs) { const px = Math.round(X(t)) + 0.5; c.moveTo(px, top); c.lineTo(px, top + phh); }
+      for (let v = Math.ceil(lo / ys) * ys; v <= hi; v += ys) { const py = Math.round(Y(v)) + 0.5; c.moveTo(L, py); c.lineTo(L + pw, py); }
+      c.stroke();
+      for (let t = 0; t <= T[T.length - 1] + 1e-9; t += xs) txt(fmtNum(t, 3), X(t), top + phh + 10);
+      for (let v = Math.ceil(lo / ys) * ys; v <= hi; v += ys) txt(fmtNum(v, 3), L - 4, Y(v), "right");
+      txt("t (s)", W - Rm, top + phh + 10, "right");
+      if (s.final != null) { c.setLineDash([5, 4]); c.strokeStyle = green; c.beginPath(); c.moveTo(L, Y(s.final)); c.lineTo(L + pw, Y(s.final)); c.stroke(); c.setLineDash([]); }
+      c.strokeStyle = blue; c.lineWidth = 2.2; c.beginPath();
+      for (let i = 0; i < T.length; i++) { const px = X(T[i]), py = Y(Yv[i]); i ? c.lineTo(px, py) : c.moveTo(px, py); }
+      c.stroke(); bAxes(c, L, top, pw, phh, tok);
+      if (BD.cur != null) {
+        let best = 0, bd = 1e9; for (let i = 0; i < T.length; i++) { const d = Math.abs(X(T[i]) - BD.cur); if (d < bd) { bd = d; best = i; } }
+        gDot(c, X(T[best]), Y(Yv[best]), 4.5, blue);
+        bTip("t = " + fmtNum(T[best], 4) + " s   y = " + fmtNum(Yv[best], 4), W, top + 14, c, tok);
+      }
+      return;
+    }
+    // polos y ceros: plano s
+    const pts = [...b.poles, ...b.zeros];
+    let m = Math.max(1, ...pts.map((p) => Math.max(Math.abs(p[0]), Math.abs(p[1])))) * 1.25;
+    const sc = Math.min(W, H - 10) / (2 * m), cx = W / 2, cy = (H - 10) / 2;
+    const X = (x) => cx + x * sc, Y = (y) => cy - y * sc;
+    c.fillStyle = rgba("#2E7D32", 0.1); c.fillRect(0, 0, cx, H);
+    const [st] = gSteps(sc, false);
+    c.strokeStyle = tok("--gmajor"); c.lineWidth = 1; c.beginPath();
+    for (let v = -Math.ceil(m / st) * st; v <= m; v += st) { c.moveTo(X(v), 0); c.lineTo(X(v), H); c.moveTo(0, Y(v)); c.lineTo(W, Y(v)); }
+    c.stroke();
+    c.strokeStyle = tok("--gaxis"); c.lineWidth = 1.3; c.beginPath(); c.moveTo(0, cy); c.lineTo(W, cy); c.moveTo(cx, 0); c.lineTo(cx, H); c.stroke();
+    for (let v = -Math.ceil(m / st) * st; v <= m; v += st) { if (Math.abs(v) < st / 2) continue; txt(fmtNum(v, 3), X(v), cy + 10); txt(fmtNum(v, 3) + "j", cx - 4, Y(v), "right"); }
+    txt("estable", 8, 10, "left", green); txt("σ", W - 8, cy - 10, "right"); txt("jω", cx + 8, 10, "left");
+    c.lineWidth = 2.4;
+    for (const p of b.poles) { const x = X(p[0]), y = Y(p[1]); c.strokeStyle = red; c.beginPath(); c.moveTo(x - 6, y - 6); c.lineTo(x + 6, y + 6); c.moveTo(x + 6, y - 6); c.lineTo(x - 6, y + 6); c.stroke(); }
+    for (const z of b.zeros) { c.strokeStyle = blue; c.beginPath(); c.arc(X(z[0]), Y(z[1]), 6, 0, 2 * Math.PI); c.stroke(); }
+    if (BD.curP) {
+      let best = null, bd = 30;
+      for (const [kind, arr] of [["Polo", b.poles], ["Cero", b.zeros]]) for (const p of arr) { const d = Math.hypot(X(p[0]) - BD.curP.x, Y(p[1]) - BD.curP.y); if (d < bd) { bd = d; best = [kind, p]; } }
+      if (best) {
+        const [kind, p] = best, wn = Math.hypot(p[0], p[1]), z = wn > 0 ? -p[0] / wn : 0;
+        let t = kind + ": s = " + fmtNum(p[0], 4) + (Math.abs(p[1]) > 1e-9 ? (p[1] < 0 ? " − " : " + ") + fmtNum(Math.abs(p[1]), 4) + "j" : "");
+        if (wn > 0) t += "   ωn = " + fmtNum(wn, 4) + "   ζ = " + fmtNum(z, 3);
+        if (p[0] < 0) t += "   τ = " + fmtNum(-1 / p[0], 4) + " s";
+        bTip(t, W, 22, c, tok);
+      }
+    }
+  }
+  function bTip(t, W, y, c, tok) {
+    c.font = "12px -apple-system, BlinkMacSystemFont, sans-serif";
+    const tw = c.measureText(t).width, x = Math.max(4, Math.min(W - tw - 14, (W - tw) / 2));
+    c.fillStyle = tok("--gpanel"); c.strokeStyle = tok("--rule"); c.lineWidth = 1;
+    c.beginPath(); c.roundRect ? c.roundRect(x - 6, y - 11, tw + 12, 22, 6) : c.rect(x - 6, y - 11, tw + 12, 22); c.fill(); c.stroke();
+    c.fillStyle = tok("--ink"); c.textAlign = "left"; c.textBaseline = "middle"; c.fillText(t, x, y);
+  }
+  const bPtr = (ev) => { const r = bcv.getBoundingClientRect(); BD.cur = ev.clientX - r.left; BD.curP = { x: ev.clientX - r.left, y: ev.clientY - r.top }; bDraw(); };
+  bcv.addEventListener("pointerdown", (ev) => { bcv.setPointerCapture(ev.pointerId); bPtr(ev); });
+  bcv.addEventListener("pointermove", (ev) => { if (ev.buttons || ev.pointerType === "mouse") bPtr(ev); });
+
+  // tabla de valores
+  function openTable() {
+    const f = G.frame; if (!f) return;
+    if (!f.funcs.length) { toast("Primero grafica una función de x"); return; }
+    const sel = $("tblFn"); sel.textContent = "";
+    for (const [id, name] of f.funcs) { const o = document.createElement("option"); o.value = id; o.textContent = name + "(x)"; sel.appendChild(o); }
+    const cur = f.objs.find((o) => o.sel && f.funcs.some((q) => q[0] === o.id));
+    if (cur) sel.value = cur.id;
+    $("tblScrim").hidden = false;
+    tblAsk();
+  }
+  function tblAsk() { gSend({ t: "gTable", id: Number($("tblFn").value), x0: $("tblX0").value.replace("−", "-"), step: $("tblSt").value.replace("−", "-"), n: parseInt($("tblN").value, 10) || 21 }); }
+  for (const id of ["tblFn", "tblX0", "tblSt", "tblN"]) $(id).addEventListener("change", tblAsk);
+  $("tblClose").onclick = () => { $("tblScrim").hidden = true; };
+  $("tblScrim").addEventListener("click", (ev) => { if (ev.target === $("tblScrim")) $("tblScrim").hidden = true; });
+  function fillTable(t) {
+    const tb = $("tbl"); tb.textContent = "";
+    if (t.error) { toast(t.error); return; }
+    const h = document.createElement("tr"); h.innerHTML = `<th>x</th><th>${esc(t.name)}(x)</th>`; tb.appendChild(h);
+    for (const [x, y] of t.rows) { const r = document.createElement("tr"); r.innerHTML = `<td>${esc(x)}</td><td>${esc(y)}</td>`; tb.appendChild(r); }
+  }
+
+  // tangente / área tocando las curvas
+  function startPick(mode) {
+    G.pick = mode;
+    $("gedit").hidden = false;
+    $("gedit").textContent = mode === "tangent" ? "Tangente: toca la curva en el punto que quieres · esc cancela" : "Área: toca una curva y después otra (o el eje x) · esc cancela";
+  }
+  function endPick() { G.pick = null; if (!(G.frame && G.frame.editing)) $("gedit").hidden = true; }
+
   // ---------------------------------------------------------------- versión instalable (GitHub Pages)
-  // versión: partió a la par con TNS Estudio (1.1 beta = la beta del PC del 26-10-2026); 1.2 = gráficos
-  const APP_VERSION = "1.2.1 beta";
+  // versión: partió a la par con TNS Estudio (1.1 beta = la beta del PC del 26-10-2026); 1.2 = gráficos; 1.3 = Bode, tabla, tangente/área tocando
+  const APP_VERSION = "1.3 beta";
   $("verTag").textContent = "v" + APP_VERSION;
   $("loadVer").textContent = "v" + APP_VERSION;
   $("verNote").textContent = "e^jπ · versión " + APP_VERSION + " · mismo núcleo que TNS Estudio (Python + SymPy en el teléfono).";

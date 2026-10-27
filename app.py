@@ -210,6 +210,10 @@ class _G:
     hover = None
     msg = None
     dirty = True
+    bode = None
+    table = None
+    pick_first = None
+    pickdone = False
 
 
 def _ext():
@@ -356,9 +360,155 @@ def gframe():
         sp_.append([round(px, 1), round(py, 1), "%s (%s, %s)" % (t, fmt_num(x), fmt_num(y))])
     out = {"view": [vp.cx, vp.cy, vp.sx, vp.sy, vp.w, vp.h], "pi": bool(geom.pi_axis(vp)), "pimode": vp.pi_mode,
            "grid": vp.grid, "objs": objs, "special": sp_, "hover": _G.hover, "msg": _G.msg,
-           "editing": _G.editing.name if _G.editing is not None else None, "save": _gsave()}
+           "editing": _G.editing.name if _G.editing is not None else None, "save": _gsave(),
+           "bode": _G.bode, "table": _G.table, "pickdone": _G.pickdone,
+           "funcs": [[id(o), o.name] for o in sc.objs if o.kind in ("func", "tangent") and not o.error]}
     _G.msg = None
+    _G.bode = None
+    _G.table = None
+    _G.pickdone = False
     return out
+
+
+def _dec(a, n=500):
+    import numpy as np
+    a = np.asarray(a, float)
+    if len(a) > n:
+        a = a[np.linspace(0, len(a) - 1, n).astype(int)]
+    return [None if not np.isfinite(v) else float("%.6g" % v) for v in a]
+
+
+def _bode(text):
+    """bode(H(s)): magnitud y fase, polos y ceros, márgenes y respuesta al escalón (como el diálogo del PC)."""
+    from tnsestudio.graph.control import S, _croot, analyze, step_response
+    from tnsestudio.graph.model import fmt_num
+    text = text.replace("H(s)=", "").replace("H(s) =", "").strip()
+    try:
+        e = _G.scene.parse(text)
+        e = _G.scene._params(e, {S})
+        d = analyze(e)
+    except Exception as ex:  # noqa: BLE001
+        msg = str(ex)
+        if hasattr(ex, "names"):
+            msg = "Faltan valores para: %s (créalos como deslizadores)" % ", ".join(ex.names)
+        return {"error": msg or "No pude leer H(s)", "text": text}
+    info = []
+    if d["poles"]:
+        info.append("Polos: " + ", ".join(_croot(z) for z in d["poles"]))
+    if d["zeros"]:
+        info.append("Ceros: " + ", ".join(_croot(z) for z in d["zeros"]))
+    info.append("Cruce de ganancia ω = %s rad/s → margen de fase %s°" % (fmt_num(d["gc"][0]), fmt_num(d["gc"][1]))
+                if d["gc"] else "No cruza 0 dB")
+    if d["pc"]:
+        info.append("Cruce de fase ω = %s rad/s → margen de ganancia %s dB" % (fmt_num(d["pc"][0]), fmt_num(d["pc"][1])))
+    step = None
+    try:
+        t, y, si = step_response(e, n=800)
+        step = {"t": _dec(t), "y": _dec(y), "stable": bool(si.get("stable"))}
+        if si.get("stable"):
+            st = ["valor final %s" % fmt_num(si["final"])]
+            step["final"] = float(si["final"])
+            if "overshoot" in si:
+                st.append("sobrepaso %s%%" % fmt_num(si["overshoot"], 2))
+            if "tpeak" in si and si.get("overshoot", 0) > 0.01:
+                st.append("tp = %s s" % fmt_num(si["tpeak"]))
+            if "trise" in si:
+                st.append("tr (10–90%%) = %s s" % fmt_num(si["trise"]))
+            if "tsettle" in si:
+                st.append("ts (2%%) = %s s" % fmt_num(si["tsettle"]))
+            step["info"] = "Escalón: " + ", ".join(st)
+        else:
+            step["info"] = "Escalón: el sistema no es estable"
+    except Exception as ex:  # noqa: BLE001
+        step = {"error": "Escalón: %s" % ex}
+    pz = lambda zs: [[float(z.real), float(z.imag)] for z in zs]  # noqa: E731
+    return {"text": text, "w": _dec(d["w"]), "mag": _dec(d["mag"]), "ph": _dec(d["ph"]),
+            "gc": list(d["gc"]) if d["gc"] else None, "pc": list(d["pc"]) if d["pc"] else None,
+            "poles": pz(d["poles"]), "zeros": pz(d["zeros"]), "info": info, "step": step}
+
+
+def _table(o, x0, st, n):
+    import numpy as np
+    from tnsestudio.graph.model import _real, fmt_num
+    xs = x0 + st * np.arange(n)
+    ys = _real(o.fn(xs), xs.shape)
+    return {"name": o.name, "rows": [[fmt_num(x, 6), fmt_num(y, 6) if np.isfinite(y) else "undef"] for x, y in zip(xs, ys)]}
+
+
+def _pick(mode, mx, my):
+    """Tangente o área tocando las curvas (como los botones del PC)."""
+    from tnsestudio.graph import geom
+    from tnsestudio.graph.model import _intersections, _real, fmt_num
+    vp, sc = _G.vp, _G.scene
+    h = geom.hit(vp, _G.geo, _G.special, mx, my, radius=16)
+    o = x = None
+    if h and h[0] == "curve" and h[1].kind in ("func", "tangent"):
+        o, x = h[1], float(h[2])
+    elif h and h[0] == "special":            # tocó justo un punto marcado: la curva que pasa por ahí
+        import numpy as np
+        sx_ = float(h[1][0])
+        for c in reversed(sc.objs):
+            if c.visible and not c.error and c.fn is not None and c.kind in ("func", "tangent"):
+                yv = float(_real(c.fn(np.array([sx_])), (1,))[0])
+                if np.isfinite(yv) and abs(vp.to_px(sx_, yv)[1] - my) <= 16:
+                    o, x = c, sx_
+                    break
+    if o is None and mode == "area" and abs(my - vp.to_px(0, 0)[1]) <= 14:
+        o, x = "axis", vp.to_world(mx, my)[0]
+    if o is None:
+        _G.msg = "Ahí no hay una curva: toca justo encima de una%s." % (" (o el eje x)" if mode == "area" else "")
+        return "again"
+    num = lambda v: ("%.10g" % v)  # noqa: E731
+    if mode == "tangent":
+        if o == "axis":
+            return "again"
+        t = sc.add("tangente(%s,%s)" % (o.name, num(round(x, 4))))
+        vp.selected = t if not t.error else None
+        if t.error:
+            _G.msg = t.error
+        return "done"
+    first = _G.pick_first
+    if first is None:
+        _G.pick_first = (o, x)
+        if o != "axis":
+            vp.selected = o
+        _G.msg = "Área: ahora toca la segunda curva%s." % ("" if o == "axis" else " (o el eje x)")
+        return "again"
+    o1, x1 = first
+    if o is o1 or (o == "axis" and o1 == "axis"):
+        _G.msg = "Esa ya la elegiste: toca otra curva%s." % ("" if o1 == "axis" else " o el eje x")
+        return "again"
+    if o1 == "axis":
+        o1, o = o, o1
+    f, g = o1, (None if o == "axis" else o)
+
+    def fd(xs):
+        ys = _real(f.fn(xs), xs.shape)
+        return ys - _real(g.fn(xs), xs.shape) if g is not None else ys
+    x0, x1v, _y0, _y1 = vp.bounds()
+    lo, hi = min(-50.0, x0 - (x1v - x0)), max(50.0, x1v + (x1v - x0))
+    cuts = sorted(_intersections(fd, lo, hi, 40001))
+    xc = (x + x1) / 2
+    left = [c for c in cuts if c < xc - 1e-9]
+    right = [c for c in cuts if c > xc + 1e-9]
+    gname = g.name if g is not None else "0"
+    if not left or not right:
+        if len(cuts) >= 2:
+            a, b = (cuts[0], cuts[1]) if not left else (cuts[-2], cuts[-1])
+        else:
+            _G.msg = ("%s y %s no encierran un área ahí. Escribe los límites: area(%s,%s,a,b)"
+                      % (f.name, g.name if g else "el eje x", f.name, gname))
+            return "done"
+    else:
+        a, b = left[-1], right[0]
+    t = sc.add("area(%s,%s,%s,%s)" % (f.name, gname, num(a), num(b)))
+    if t.error:
+        _G.msg = t.error
+    else:
+        vp.selected = None
+        _G.msg = "Área entre %s y %s, de x = %s a x = %s: %s" % (f.name, g.name if g else "el eje x", fmt_num(a),
+                                                                  fmt_num(b), fmt_num(t.data["value"], 6))
+    return "done"
 
 
 def _gobj(i):
@@ -396,8 +546,11 @@ def gaction(m):
             vp.cx, vp.cy, vp.sx, vp.sy = float(m["cx"]), float(m["cy"]), float(m["sx"]), float(m["sy"])
     elif t == "gEnter":
         text = AP.ed.text().strip()
-        if re.match(r"^\s*bode\s*\(", text, re.I):
-            _G.msg = "Bode todavía no está en el celular (sí en TNS Estudio del PC)."
+        mb = re.match(r"^\s*bode\s*\((.*)\)\s*$", text, re.I)
+        if mb:
+            _G.bode = _bode(mb.group(1))
+            if not _G.bode.get("error"):
+                AP.ed.clear()
             return True
         if not text:
             if _G.editing is not None:
@@ -495,6 +648,26 @@ def gaction(m):
         vp.pi_mode = {"auto": "on", "on": "off"}.get(vp.pi_mode, "auto")
     elif t == "gGrid":
         vp.grid = not vp.grid
+    elif t == "gBode":
+        _G.bode = _bode(m.get("s", ""))
+    elif t == "gTable":
+        o = _gobj(m["id"])
+        if o is not None and o.kind in ("func", "tangent") and not o.error:
+            try:
+                x0 = float(sc.parse(m.get("x0") or "0").evalf())
+                st = float(sc.parse(m.get("step") or "1").evalf())
+                n = max(1, min(500, int(m.get("n") or 21)))
+                _G.table = _table(o, x0, st, n)
+            except Exception:  # noqa: BLE001
+                _G.table = {"error": "Revisa el inicio y el paso"}
+    elif t == "gPick":
+        if m.get("mode") in (None, "cancel"):
+            _G.pick_first = None
+        else:
+            r = _pick(m["mode"], float(m["x"]), float(m["y"]))
+            if r == "done":
+                _G.pick_first = None
+            _G.pickdone = r == "done"
     elif t == "gRefresh":
         sc.rebuild()
     elif t == "gClear":
