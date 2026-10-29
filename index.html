@@ -848,6 +848,14 @@
   // ---------------------------------------------------------------- menú (como la tecla menu de la TI) y diálogos
   let MENU = null;
   fetch("menu.json").then((r) => r.json()).then((d) => { MENU = d; }).catch(() => { MENU = []; });
+  async function pasteClip() {
+    try {
+      const t = await navigator.clipboard.readText();
+      if (!t) { toast("El portapapeles está vacío"); return; }
+      send({ t: "paste", s: t });
+      if (t.trim().includes("\n")) toast("Calculando " + t.trim().split("\n").filter((x) => x.trim() && !x.trim().startsWith("#")).length + " líneas…");
+    } catch (e) { toast("No pude leer el portapapeles"); }
+  }
   const QUICK = [
     ["Eléctrica · complejos", [
       ["▸Rect", "a rectangular", "▸Rect"], ["▸Polar", "a polar", "▸Polar"], ["real( )", "parte real", "real(|)"],
@@ -885,6 +893,12 @@
     $("mBack").hidden = !top;
     $("mTitle").textContent = top ? mStack.map((n) => n.c).join(" ") + "  " + top.t : "Menú";
     if (!top) {
+      const hp = document.createElement("div"); hp.className = "msec"; hp.textContent = "Portapapeles"; body.appendChild(hp);
+      const gp = document.createElement("div"); gp.className = "chips";
+      const bp = document.createElement("button");
+      bp.innerHTML = "<b>Pegar</b><span>una línea, o varias: se calculan una por una</span>";
+      bp.onclick = () => { closeMenu(); pasteClip(); };
+      gp.appendChild(bp); body.appendChild(gp);
       for (const [title, items] of QUICK) {
         const h = document.createElement("div"); h.className = "msec"; h.textContent = title; body.appendChild(h);
         const g = document.createElement("div"); g.className = "chips";
@@ -1704,7 +1718,7 @@
 
   // ---------------------------------------------------------------- versión instalable (GitHub Pages)
   // versión: partió a la par con TNS Estudio (1.1 beta = la beta del PC del 26-10-2026); 1.2 = gráficos; 1.3 = Bode, tabla, tangente/área tocando
-  const APP_VERSION = "1.3 beta";
+  const APP_VERSION = "1.3.1 beta";
   $("verTag").textContent = "v" + APP_VERSION;
   $("loadVer").textContent = "v" + APP_VERSION;
   $("verNote").textContent = "e^jπ · versión " + APP_VERSION + " · mismo núcleo que TNS Estudio (Python + SymPy en el teléfono).";

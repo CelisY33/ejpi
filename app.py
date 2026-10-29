@@ -682,6 +682,37 @@ def gaction(m):
         _fit_if_out(o)
     return True
 
+_MODOS = {"grado": ("angle", "Grado"), "grados": ("angle", "Grado"), "radián": ("angle", "Radián"),
+          "radian": ("angle", "Radián"), "radianes": ("angle", "Radián"), "gradián": ("angle", "Gradián"),
+          "rectangular": ("cplx", "Rectangular"), "polar": ("cplx", "Polar"), "real": ("cplx", "Real"),
+          "auto": ("mode", "Auto"), "exacto": ("mode", "Exacto"), "aproximado": ("mode", "Aproximado")}
+
+
+def _batch(txt):
+    """Varias líneas pegadas: se calcula una por una, como si se escribieran (líneas con # son comentarios;
+    "#modo Grado Rectangular" cambia los ajustes)."""
+    ed = AP.ed
+    for line in txt.split("\n"):
+        line = line.strip()
+        if not line:
+            continue
+        if line.startswith("#"):
+            low = line[1:].strip().lower()
+            if low.startswith("modo") or low.startswith("mode"):
+                for w in low.split()[1:]:
+                    kv = _MODOS.get(w.strip(",;"))
+                    if kv:
+                        setattr(AP.calc.ajustes, kv[0], kv[1])
+                AP.calc.guardar()
+            continue
+        AP.mensaje = None
+        ed.clear()
+        ed.insertRow(from_linear(line))
+        AP.tecla("enter")
+        if AP.mensaje is not None:           # error de sintaxis: queda en la línea para corregirlo
+            break
+
+
 def action(msg_json):
     m = json.loads(msg_json)
     t = m.get("t")
@@ -709,7 +740,11 @@ def action(msg_json):
         _menu_insert(m["s"])
     elif t == "paste":
         AP._set_sel(None)
-        ed.pasteText(m.get("s", ""))
+        txt = (m.get("s", "") or "").replace("\r", "")
+        if "\n" in txt.strip():
+            _batch(txt)
+        else:
+            ed.pasteText(txt.strip())
     elif t == "system":
         AP._set_sel(None)
         ed.insertSystem(m.get("n", 2), m.get("fn", "solve"), m.get("vars", "x,y"))
