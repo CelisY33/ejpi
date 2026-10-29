@@ -283,6 +283,7 @@
   .step button { width: 36px; height: 36px; border: 0; border-radius: 18px; background: #3B4048; color: #F2F3F5; font-size: 20px; line-height: 1; }
   .step output { min-width: 28px; text-align: center; font-size: 18px; font-weight: 600; font-variant-numeric: tabular-nums; }
   .form input[type=text] { width: 55%; height: 36px; border-radius: 8px; border: 1px solid #3B4048; background: #1B1E23; color: #F2F3F5; padding: 0 10px; font-size: 16px; font-family: "TNSSerif", Georgia, serif; }
+  .pastebox { width: 100%; box-sizing: border-box; min-height: 34dvh; border-radius: 10px; border: 1px solid #3B4048; background: #1B1E23; color: #F2F3F5; padding: 10px; font: 14px/1.45 ui-monospace, "SF Mono", Menlo, Consolas, monospace; resize: vertical; }
   .form .hintx { color: #AEB4BF; font-size: 12.5px; margin: -4px 0 0; }
   .row-btns button.ok { background: var(--accent); color: #fff; }
   /* ---------- cargando, ajustes y avisos */
@@ -848,13 +849,29 @@
   // ---------------------------------------------------------------- menú (como la tecla menu de la TI) y diálogos
   let MENU = null;
   fetch("menu.json").then((r) => r.json()).then((d) => { MENU = d; }).catch(() => { MENU = []; });
-  async function pasteClip() {
-    try {
-      const t = await navigator.clipboard.readText();
-      if (!t) { toast("El portapapeles está vacío"); return; }
+  // Pegar: un cuadro donde se pega (dentro de la app de Claude o sin permiso no se puede leer el portapapeles
+  // directo); si el navegador deja, se llena solo.
+  function pasteClip() {
+    let ta;
+    openForm("Pegar cálculos", (body) => {
+      const h = document.createElement("p"); h.className = "hintx";
+      h.textContent = "Toca el cuadro y elige Pegar. Una línea va a la línea de entrada; varias se calculan una por una (# = comentario).";
+      ta = document.createElement("textarea");
+      ta.className = "pastebox"; ta.setAttribute("autocapitalize", "off"); ta.setAttribute("autocorrect", "off"); ta.spellcheck = false;
+      ta.placeholder = "Pega aquí…";
+      body.append(h, ta);
+      try {
+        if (navigator.clipboard && navigator.clipboard.readText)
+          navigator.clipboard.readText().then((t) => { if (t && !ta.value) ta.value = t; }).catch(() => {});
+      } catch (e) { /* sin permiso: se pega a mano */ }
+      setTimeout(() => { try { ta.focus(); } catch (e) { /* nada */ } }, 50);
+    }, () => {
+      const t = (ta.value || "").trim();
+      if (!t) return;
       send({ t: "paste", s: t });
-      if (t.trim().includes("\n")) toast("Calculando " + t.trim().split("\n").filter((x) => x.trim() && !x.trim().startsWith("#")).length + " líneas…");
-    } catch (e) { toast("No pude leer el portapapeles"); }
+      const n = t.split("\n").filter((x) => x.trim() && !x.trim().startsWith("#")).length;
+      if (n > 1) toast("Calculando " + n + " líneas…");
+    }, "Calcular");
   }
   const QUICK = [
     ["Eléctrica · complejos", [
@@ -938,7 +955,8 @@
 
   // diálogos: número de ecuaciones y variables, tamaño de la matriz
   let fOk = null;
-  function openForm(title, build, ok) {
+  function openForm(title, build, ok, okLabel) {
+    $("fOk").textContent = okLabel || "OK";
     $("fTitle").textContent = title;
     const body = $("fBody"); body.textContent = "";
     build(body);
@@ -1026,6 +1044,8 @@
     }
   });
   window.addEventListener("paste", (ev) => {
+    const tg = ev.target;
+    if (tg && tg !== kbd && /^(INPUT|SELECT|TEXTAREA)$/.test(tg.tagName)) return;     // pegar en un cuadro de texto
     const t = (ev.clipboardData && ev.clipboardData.getData("text")) || "";
     if (t) { ev.preventDefault(); send({ t: "paste", s: t }); }
   });
@@ -1718,7 +1738,7 @@
 
   // ---------------------------------------------------------------- versión instalable (GitHub Pages)
   // versión: partió a la par con TNS Estudio (1.1 beta = la beta del PC del 26-10-2026); 1.2 = gráficos; 1.3 = Bode, tabla, tangente/área tocando
-  const APP_VERSION = "1.3.1 beta";
+  const APP_VERSION = "1.3.2 beta";
   $("verTag").textContent = "v" + APP_VERSION;
   $("loadVer").textContent = "v" + APP_VERSION;
   $("verNote").textContent = "e^jπ · versión " + APP_VERSION + " · mismo núcleo que TNS Estudio (Python + SymPy en el teléfono).";
